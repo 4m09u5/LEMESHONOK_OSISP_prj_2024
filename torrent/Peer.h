@@ -14,6 +14,10 @@ class Peer {
 public:
     Peer(std::string addr, std::string port);
 
+    const std::string &getAddr() const;
+
+    const std::string &getPort() const;
+
     std::string toString();
 };
 

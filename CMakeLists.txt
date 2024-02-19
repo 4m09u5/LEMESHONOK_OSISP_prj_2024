@@ -17,4 +17,10 @@ add_executable(BitTorrent main.cpp
         torrent/Peer.cpp
         torrent/Peer.h
         bencode/TorrentFileParser.cpp
-        bencode/TorrentFileParser.h)
+        bencode/TorrentFileParser.h
+        network/tcp.cpp
+        network/tcp.h
+        network/PeerConnection.cpp
+        network/PeerConnection.h
+        network/message.cpp
+        network/message.h)

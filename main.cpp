@@ -6,12 +6,13 @@
 #include "network/http.h"
 #include "torrent/Peer.h"
 #include "bencode/TorrentFileParser.h"
+#include "network/PeerConnection.h"
 
 void printPeers(std::string peers) {
     for(auto it = peers.begin(); it != peers.end(); it+=6) {
         std::cout << +static_cast<unsigned char>(*it) << "." << +static_cast<unsigned char>(*(it + 1)) << "." <<
                 +static_cast<unsigned char>(*(it + 2)) << "." << +static_cast<unsigned char>(*(it + 3)) << ":" <<
-                +static_cast<unsigned short>(*(it + 4) * 256 + *(it + 5)) << std::endl;
+                +static_cast<unsigned short>(static_cast<unsigned short>(*(it + 4)) * 256 + static_cast<unsigned char>(*(it + 5))) << std::endl;
     }
 }
 
@@ -21,7 +22,7 @@ std::vector<Peer> parsePeers(const std::string& raw) {
         std::stringstream host, port;
         host << +static_cast<unsigned char>(*it) << "." << +static_cast<unsigned char>(*(it + 1)) << "." <<
             +static_cast<unsigned char>(*(it + 2)) << "." << +static_cast<unsigned char>(*(it + 3));
-        port << +static_cast<unsigned short>(*(it + 4) * 256 + *(it + 5));
+        port << +static_cast<unsigned short>(static_cast<unsigned short>(*(it + 4)) * 256 + static_cast<unsigned char>(*(it + 5)));
         peers.emplace_back(host.str(), port.str());
     }
 
@@ -49,4 +50,14 @@ int main() {
 
     auto data = parser.parse(response.getData());
     auto peers = parsePeers(data["peers"].rawValue);
+
+    std::cout << std::endl;
+    printPeers(data["peers"].rawValue);
+    std::cout << "Connecting to " << peers[0].getAddr() << " - " << peers[0].getPort() << std::endl;
+    PeerConnection connection("78.157.236.161", "21499");
+
+    auto handshake = connection.sendHandshake();
+    connection.sendInterested();
+    auto resp = connection.sendHave(0);
+    std::cout << "aboba";
 }
