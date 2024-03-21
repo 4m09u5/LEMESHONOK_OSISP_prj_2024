@@ -21,8 +21,10 @@ public:
         connection.connectToServer();
     }
 
-    std::string sendHandshake() {
-        connection.sendData("\x13""BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00\x9D\x61\x14\xC0\x3F\xEB\x85\x35\x49\xB5\x02\x3A\x04\xE4\x92\x4F\xA5\xFF\x47\x57\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10");
+    std::vector<uint8_t> sendHandshake() {
+        std::vector<uint8_t> a{0x13, 'B', 'i', 't', 'T', 'o', 'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o', 'l', 0x0, 0x0, 0x0, 0x00, 0x00, 0x10, 0x00, 0x05, 0x9D, 0x61, 0x14, 0xC0, 0x3F, 0xEB, 0x85, 0x35, 0x49, 0xB5, 0x02, 0x3A, 0x04, 0xE4, 0x92, 0x4F, 0xA5, 0xFF, 0x47, 0x57, '-', 'q', 'B', '4', '6', '3', '0', '-', 'k','8','h','j','0','w','g','e','j','6','c','h'};
+        connection.sendData(a);
+
         return connection.receiveData();
     }
 
@@ -44,7 +46,6 @@ public:
     void sendInterested() {
         Message interested(2);
         connection.sendData(interested.toString());
-        connection.receiveData();
     }
 
     void sendNotInterested() {
@@ -52,11 +53,55 @@ public:
         connection.sendData(notInterested.toString());
     }
 
-    std::string sendHave(uint32_t pieceIndex) {
+    void sendHave(uint32_t pieceIndex) {
         Message have(4);
         have.addPayload(pieceIndex);
         connection.sendData(have.toString());
-        auto result = connection.receiveData();
+    }
+
+    void sendBitfield(const std::vector<bool>& pieces) {
+        Message bitfield(5);
+        bitfield.addPayload(pieces);
+        connection.sendData(bitfield.toString());
+    }
+
+    void sendRequest(uint32_t index, uint32_t begin, uint32_t length) {
+        Message request(6);
+        request.addPayload(index);
+        request.addPayload(begin);
+        request.addPayload(length);
+        connection.sendData(request.toString());
+    }
+
+    Message receiveHandshake() {
+        Message result;
+        std::vector<uint8_t> packet = connection.receiveData();
+        if (packet.size() <= 4) {
+            result.setLength(0);
+            result.setPayload({});
+            result.setId(0);
+            return result;
+        }
+        result.setLength((packet.at(0) << 24) + (packet.at(1) << 16) + (packet.at(2) << 8) + packet.at(3));
+        result.setId(packet.at(4));
+        result.setPayload(std::vector(packet.begin() + 5, packet.end()));
+
+        return result;
+    }
+
+    Message receiveMessage() {
+        Message result;
+        std::vector<uint8_t> packet = connection.receivePacket();
+        if (packet.size() <= 4) {
+            result.setLength(0);
+            result.setPayload({});
+            result.setId(0);
+            return result;
+        }
+        result.setLength((packet.at(0) << 24) + (packet.at(1) << 16) + (packet.at(2) << 8) + packet.at(3));
+        result.setId(packet.at(4));
+        result.setPayload(std::vector(packet.begin() + 5, packet.end()));
+
         return result;
     }
 };

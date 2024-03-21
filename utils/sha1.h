@@ -38,6 +38,7 @@ public:
     SHA1();
     void update(const std::string &s);
     void update(std::istream &is);
+    void update(const std::vector<uint8_t> &v);
     std::string final();
     static std::string from_file(const std::string &filename);
 
@@ -251,6 +252,15 @@ inline SHA1::SHA1()
 inline void SHA1::update(const std::string &s)
 {
     std::istringstream is(s);
+    update(is);
+}
+
+inline void SHA1::update(const std::vector<uint8_t> &v)
+{
+    std::stringstream is;
+    for(auto byte : v) {
+        is << byte;
+    }
     update(is);
 }
 

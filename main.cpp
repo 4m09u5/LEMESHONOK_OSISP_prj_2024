@@ -5,8 +5,9 @@
 #include "utils/sha1.h"
 #include "network/http.h"
 #include "torrent/Peer.h"
-#include "bencode/TorrentFileParser.h"
+#include "bencode/TorrentFile.h"
 #include "network/PeerConnection.h"
+#include "utils/sha1.h"
 
 void printPeers(std::string peers) {
     for(auto it = peers.begin(); it != peers.end(); it+=6) {
@@ -32,7 +33,13 @@ std::vector<Peer> parsePeers(const std::string& raw) {
 int main() {
     auto parser = BencodeParser();
 
-    auto metadata = parseTorrentFile("../example.torrent");
+    TorrentFile metadata("../example.torrent");
+
+    size_t blockSize = 0x4000;
+
+    std::cout << "Piece length: " << metadata.info.piece_length << std::endl;
+    std::cout << "Desired block size: " << blockSize << std::endl;
+    std::cout << "Blocks per piece: " << metadata.info.piece_length / blockSize << std::endl;
 
     std::string hash = URLEncode(metadata.infoHash);
 
@@ -52,12 +59,48 @@ int main() {
     auto peers = parsePeers(data["peers"].rawValue);
 
     std::cout << std::endl;
-    printPeers(data["peers"].rawValue);
-    std::cout << "Connecting to " << peers[0].getAddr() << " - " << peers[0].getPort() << std::endl;
-    PeerConnection connection("78.157.236.161", "21499");
 
-    auto handshake = connection.sendHandshake();
-    connection.sendInterested();
-    auto resp = connection.sendHave(0);
+    for(const auto& peer : peers) {
+        try {
+            std::cout << "Connecting to " << peer.getAddr() << " - " << peer.getPort() << std::endl;
+            PeerConnection connection(peer.getAddr(), peer.getPort());
+            connection.sendHandshake();
+            auto handshakeResponse = connection.receiveHandshake();
+            std::cout << "Successfully shaked " << peer.getAddr() << " hand!" << std::endl;
+            connection.sendInterested();
+            auto interestedResponse = connection.receiveMessage();
+            std::cout << "I told i am interested!" << std::endl;
+/*          std::ofstream file("piece.bin", std::ios::out | std::ios::binary);
+
+            file.write()*/
+
+            std::vector<uint8_t> piece;
+
+            for(size_t i = 0; i < metadata.info.piece_length; i += blockSize) {
+                connection.sendRequest(0, i, blockSize);
+                auto requestResponse = connection.receiveMessage();
+                piece.insert(piece.end(), requestResponse.getPayload().begin() + 8, requestResponse.getPayload().end());
+                std::cout << "Successfully got " << std::hex << i << " piece (" << requestResponse.getPayload().size() << ") size" << std::endl;
+            }
+
+            SHA1 hash;
+            hash.update(piece);
+
+
+            std::cout << "Desired hash: ";
+            for(int i = 0; i < 20; i++) {
+                std::cout << std::hex << +(uint8_t)metadata.info.pieces[0][i];
+            }
+            std::cout << "\nPiece hash: " << hash.final() << std::endl;
+            std::cout << "Breakpoint me!" << std::endl;
+            break;
+
+        } catch (...) {
+            std::cout << "Failed to perform a handshake" << std::endl;
+        }
+    }
+
+
+
     std::cout << "aboba";
 }

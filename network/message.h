@@ -10,6 +10,21 @@
 #include <vector>
 #include <string>
 
+enum MessageType {
+    CHOKE = 0,
+    UNCHOKE = 1,
+    INTERESTED = 2,
+    NOT_INTERESTED = 3,
+    HAVE = 4,
+    BITFIELD = 5,
+    REQUEST = 6,
+    PIECE = 7,
+    CANCEL = 8,
+    PORT = 9,
+    HAVE_ALL = 14,
+    ALLOWED_FAST = 17,
+};
+
 class Message {
     uint32_t length;
     uint8_t id;
@@ -20,7 +35,20 @@ public:
 
     void addPayload(const std::vector<uint8_t>& data);
     void addPayload(uint32_t data);
+    void addPayload(const std::vector<bool>& data);
     std::string toString();
+
+    const uint32_t &getLength() const;
+
+    void setLength(const uint32_t &length);
+
+    const uint8_t &getId() const;
+
+    void setId(const uint8_t &id);
+
+    const std::vector<uint8_t> &getPayload() const;
+
+    void setPayload(const std::vector<uint8_t> &payload);
 };
 
 
