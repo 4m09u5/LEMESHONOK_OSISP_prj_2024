@@ -15,54 +15,56 @@ class PeerConnection {
     std::string port;
     TCP connection;
 public:
-    PeerConnection(const std::string& ip, const std::string& port) : connection(ip, std::stoi(port)) {
+    PeerConnection(const std::string& ip, const std::string& port) : connection(ip, port) {
         this->ip = ip;
         this->port = port;
-        connection.connectToServer();
     }
 
-    std::vector<uint8_t> sendHandshake() {
-        std::vector<uint8_t> a{0x13, 'B', 'i', 't', 'T', 'o', 'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o', 'l', 0x0, 0x0, 0x0, 0x00, 0x00, 0x10, 0x00, 0x05, 0x9D, 0x61, 0x14, 0xC0, 0x3F, 0xEB, 0x85, 0x35, 0x49, 0xB5, 0x02, 0x3A, 0x04, 0xE4, 0x92, 0x4F, 0xA5, 0xFF, 0x47, 0x57, '-', 'q', 'B', '4', '6', '3', '0', '-', 'k','8','h','j','0','w','g','e','j','6','c','h'};
-        connection.sendData(a);
+    bool connect() {
+        return connection.connect();
+    }
 
-        return connection.receiveData();
+    void sendHandshake() {
+        std::vector<uint8_t> a{0x13, 'B', 'i', 't', 'T', 'o', 'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o', 'l', 0x0, 0x0, 0x0, 0x00, 0x00, 0x10, 0x00, 0x05, 0x08, 0xe4, 0x05, 0x54, 0xd7, 0x9c, 0xc3, 0x1d, 0x7b, 0x2b, 0xd6, 0x2b, 0x61, 0x9d, 0x44, 0xfd, 0x39, 0xaf, 0xf3, 0x37 ,'-', 'q', 'B', '4', '6', '3', '0', '-', 'k','8','h','j','0','w','g','e','j','6','c','h'};
+
+        connection.sendData(a);
     }
 
     void sendKeepAlive() {
         Message keepAlive;
-        connection.sendData(keepAlive.toString());
+        connection.sendData(keepAlive.getVector());
     }
 
     void sendChoke() {
         Message choke(0);
-        connection.sendData(choke.toString());
+        connection.sendData(choke.getVector());
     }
 
     void sendUnchoke() {
         Message unchoke(1);
-        connection.sendData(unchoke.toString());
+        connection.sendData(unchoke.getVector());
     }
 
     void sendInterested() {
         Message interested(2);
-        connection.sendData(interested.toString());
+        connection.sendData(interested.getVector());
     }
 
     void sendNotInterested() {
         Message notInterested(3);
-        connection.sendData(notInterested.toString());
+        connection.sendData(notInterested.getVector());
     }
 
     void sendHave(uint32_t pieceIndex) {
         Message have(4);
         have.addPayload(pieceIndex);
-        connection.sendData(have.toString());
+        connection.sendData(have.getVector());
     }
 
     void sendBitfield(const std::vector<bool>& pieces) {
         Message bitfield(5);
         bitfield.addPayload(pieces);
-        connection.sendData(bitfield.toString());
+        connection.sendData(bitfield.getVector());
     }
 
     void sendRequest(uint32_t index, uint32_t begin, uint32_t length) {
@@ -70,37 +72,35 @@ public:
         request.addPayload(index);
         request.addPayload(begin);
         request.addPayload(length);
-        connection.sendData(request.toString());
+        connection.sendData(request.getVector());
     }
 
     Message receiveHandshake() {
         Message result;
-        std::vector<uint8_t> packet = connection.receiveData();
+        std::vector<uint8_t> packet = connection.receivePacket(0);
         if (packet.size() <= 4) {
-            result.setLength(0);
             result.setPayload({});
             result.setId(0);
             return result;
         }
-        result.setLength((packet.at(0) << 24) + (packet.at(1) << 16) + (packet.at(2) << 8) + packet.at(3));
-        result.setId(packet.at(4));
-        result.setPayload(std::vector(packet.begin() + 5, packet.end()));
+       result.setId(packet.at(0));
+        result.setPayload(std::vector(packet.begin() + 1, packet.end()));
 
         return result;
     }
 
     Message receiveMessage() {
         Message result;
-        std::vector<uint8_t> packet = connection.receivePacket();
-        if (packet.size() <= 4) {
-            result.setLength(0);
+        std::vector<uint8_t> packet = connection.receivePacket(0);
+        if (packet.size() == 1) {
             result.setPayload({});
             result.setId(0);
             return result;
         }
-        result.setLength((packet.at(0) << 24) + (packet.at(1) << 16) + (packet.at(2) << 8) + packet.at(3));
-        result.setId(packet.at(4));
-        result.setPayload(std::vector(packet.begin() + 5, packet.end()));
+        result.setId(packet.at(0));
+
+        if(result.getId() > 1)
+            result.setPayload(std::vector(packet.begin() + 1, packet.end()));
 
         return result;
     }

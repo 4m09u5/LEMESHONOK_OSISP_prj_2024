@@ -6,55 +6,44 @@
 #include "message.h"
 
 Message::Message(uint8_t id) {
-    this->length = 1;
     this->id = id;
 }
 
 Message::Message() {
-    this->length = 0;
+    this->id = -1;
 }
 
 void Message::addPayload(const std::vector<uint8_t> &data) {
     payload.insert(payload.end(), data.begin(), data.end());
-    length += data.size();
 }
 
 void Message::addPayload(const std::vector<bool> &data) {
     payload.insert(payload.end(), data.begin(), data.end());
-    length += data.size();
 }
 
-std::string Message::toString() {
-    std::string data;
+std::vector<uint8_t> Message::getVector() {
+    std::vector<uint8_t> data;
 
     for(int i = 0; i < 4; i++) {
-        data += static_cast<uint8_t>(length >> (8 * (3 - i)));
+        data.emplace_back(static_cast<uint8_t>((payload.size() + 1) >> (8 * (3 - i))));
     }
 
-    if(length != 0)
-        data += id;
+    if(id != -1)
+        data.emplace_back(id);
 
     for(auto c : payload) {
-        data += c;
+        data.emplace_back(c);
     }
 
     return data;
 }
 
-const uint32_t &Message::getLength() const {
-    return length;
-}
-
-void Message::setLength(const uint32_t &length) {
-    Message::length = length;
-}
-
-const uint8_t &Message::getId() const {
+const int16_t &Message::getId() const {
     return id;
 }
 
-void Message::setId(const uint8_t &id) {
-    Message::id = id;
+void Message::setId(const int16_t &id) {
+    this->id = id;
 }
 
 const std::vector<uint8_t> &Message::getPayload() const {
@@ -66,7 +55,6 @@ void Message::setPayload(const std::vector<uint8_t> &payload) {
 }
 
 void Message::addPayload(uint32_t data) {
-    length += 4;
     for(int i = 0; i < 4; i++) {
         payload.push_back(static_cast<uint8_t>(data >> (8 * (3 - i))));
     }

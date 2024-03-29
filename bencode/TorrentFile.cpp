@@ -26,6 +26,11 @@ Announce parseAnnounce(std::string raw) {
 TorrentFile::TorrentFile(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     std::stringstream ss;
+
+    if (!file.is_open()) {
+        return;
+    }
+
     ss << file.rdbuf() << std::flush;
     file.close();
 

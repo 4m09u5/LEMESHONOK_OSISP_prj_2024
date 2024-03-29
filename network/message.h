@@ -26,8 +26,7 @@ enum MessageType {
 };
 
 class Message {
-    uint32_t length;
-    uint8_t id;
+    int16_t id;
     std::vector<uint8_t> payload;
 public:
     Message(uint8_t id);
@@ -36,15 +35,11 @@ public:
     void addPayload(const std::vector<uint8_t>& data);
     void addPayload(uint32_t data);
     void addPayload(const std::vector<bool>& data);
-    std::string toString();
+    std::vector<uint8_t> getVector();
 
-    const uint32_t &getLength() const;
+    const int16_t &getId() const;
 
-    void setLength(const uint32_t &length);
-
-    const uint8_t &getId() const;
-
-    void setId(const uint8_t &id);
+    void setId(const int16_t &id);
 
     const std::vector<uint8_t> &getPayload() const;
 

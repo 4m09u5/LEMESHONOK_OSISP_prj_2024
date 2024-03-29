@@ -33,7 +33,7 @@ std::vector<Peer> parsePeers(const std::string& raw) {
 int main() {
     auto parser = BencodeParser();
 
-    TorrentFile metadata("../example.torrent");
+    TorrentFile metadata("example.torrent");
 
     size_t blockSize = 0x4000;
 
@@ -64,11 +64,24 @@ int main() {
         try {
             std::cout << "Connecting to " << peer.getAddr() << " - " << peer.getPort() << std::endl;
             PeerConnection connection(peer.getAddr(), peer.getPort());
+
+            if(!connection.connect()) {
+                std::cout << "Fail" << std::endl;
+                continue;
+            }
+            std::cout << "Connected!" << std::endl;
             connection.sendHandshake();
-            auto handshakeResponse = connection.receiveHandshake();
+            auto handshakeResponse = connection.receiveMessage();
             std::cout << "Successfully shaked " << peer.getAddr() << " hand!" << std::endl;
             connection.sendInterested();
-            auto interestedResponse = connection.receiveMessage();
+            try {
+                while(true) {
+                    auto interestedResponse = connection.receiveMessage();
+                }
+            } catch (...) {
+                std::cout << "Skipped shit stuff" << std::endl;
+            }
+
             std::cout << "I told i am interested!" << std::endl;
 /*          std::ofstream file("piece.bin", std::ios::out | std::ios::binary);
 

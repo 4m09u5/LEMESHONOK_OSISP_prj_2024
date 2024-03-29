@@ -58,7 +58,7 @@ HTTPResponse HTTP::execute() {
         return HTTPResponse("");
     }
 
-    int size;
+    ssize_t size;
     std::string raw_data;
     while ((size = recv(socket_desc, buffer, sizeof(buffer), 0)) > 0){
         raw_data.append(buffer, size);

@@ -28,4 +28,7 @@ add_executable(BitTorrent main.cpp
         bencode/TorrentFile.h
         network/Response.cpp
         network/Response.h
+        network/tcp.cpp
+        network/tcp.h
+        utils/SharedQueue.h
 )
