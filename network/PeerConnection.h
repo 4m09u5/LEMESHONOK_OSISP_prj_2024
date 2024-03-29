@@ -100,12 +100,12 @@ public:
         std::vector<uint8_t> packet = connection.receivePacket(0);
         if (packet.empty())
             return {-1};
+        result.setId(packet.at(0));
+
         if (packet.size() == 1) {
             result.setPayload({});
-            result.setId(0);
             return result;
         }
-        result.setId(packet.at(0));
 
         if(result.getId() > 1)
             result.setPayload(std::vector<uint8_t>(packet.begin() + 1, packet.end()));

@@ -64,7 +64,7 @@ void TCP::disconnect() {
 }
 
 std::vector<uint8_t> TCP::receiveData() {
-    std::vector<uint8_t> result(0x200);
+    std::vector<uint8_t> result(0x40);
 
     ssize_t bytesRead = recv(sockfd, result.data(), result.size(), 0);
 
@@ -77,7 +77,7 @@ std::vector<uint8_t> TCP::receiveData() {
 }
 
 
-std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize = 0) {
+std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize) {
     uint32_t total = 0;
     std::vector<uint8_t> result(packetSize);
 

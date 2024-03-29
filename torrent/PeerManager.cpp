@@ -64,6 +64,7 @@ PeerManager::PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces
 
     connection.sendHandshake();
     connection.receiveMessage();
+    idle();
 
     connection.sendInterested();
     idle();
