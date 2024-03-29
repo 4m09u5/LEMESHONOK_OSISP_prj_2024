@@ -11,13 +11,13 @@
 Announce parseAnnounce(std::string raw) {
     Announce announce;
 
-    std::regex regex("(.+):\/\/(.+):(\\d+)(.+)");
+    std::regex regex("(.+):\\/\\/([a-zA-Z0-9.\\/]+):?(\\d+)?(.+)?");
     auto match = *std::sregex_iterator(raw.begin(), raw.end(), regex);
 
     announce.protocol = match[1];
     announce.hostname = match[2];
-    announce.port = match[3];
-    announce.query = match[4];
+    announce.port = match[3].matched ? match[3] : std::string("80");
+    announce.query = match[4].matched ? match[4] : std::string("");
 
     return announce;
 }

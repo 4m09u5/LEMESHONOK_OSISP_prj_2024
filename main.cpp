@@ -41,6 +41,7 @@ int main() {
     std::cout << "Piece length: " << metadata.info.piece_length << std::endl;
     std::cout << "Desired block size: " << blockSize << std::endl;
     std::cout << "Blocks per piece: " << metadata.info.piece_length / blockSize << std::endl;
+    std::cout << "Info hash: " << metadata.infoHash << std::endl;
 
     std::string hash = URLEncode(metadata.infoHash);
 
