@@ -108,7 +108,7 @@ public:
         result.setId(packet.at(0));
 
         if(result.getId() > 1)
-            result.setPayload(std::vector(packet.begin() + 1, packet.end()));
+            result.setPayload(std::vector<uint8_t>(packet.begin() + 1, packet.end()));
 
         return result;
     }

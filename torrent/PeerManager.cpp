@@ -4,7 +4,16 @@
 
 #include <iostream>
 #include <cstring>
+#include <fstream>
 #include "PeerManager.h"
+#include "../utils/sha1.h"
+
+class RequestRejectedException : public std::exception {
+public:
+    const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_NOTHROW override {
+        return "Request rejected";
+    }
+};
 
 void PeerManager::handleMessage(Message message) {
     switch(message.getId()) {
@@ -16,6 +25,8 @@ void PeerManager::handleMessage(Message message) {
         case ALLOWED_FAST: applyAllowedFast(message.getPayload()); break;
         case PORT: handlePort(message.getPayload()); break;
         case HAVE_ALL: handleHaveAll(); break;
+        case REJECT_REQUEST: throw RequestRejectedException();
+        case HAVE_NONE: handleHaveNone(); break;
         default:
             std::cout << "UNHANDLED MESSAGE!!! ID: " << message.getId() << std::endl;
     }
@@ -42,9 +53,9 @@ void PeerManager::handlePiece(const std::vector<uint8_t> &piece) {
 }
 
 PeerManager::PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces,
-                         PieceManager &pieceManager, char *infoHash, char *clientId) : connection(connection), pieceManager(pieceManager) {
+                         PieceManager &pieceManager, TorrentFile metadata, char *clientId) :
+                         connection(connection), pieceManager(pieceManager), metadata(metadata) {
     this->pieces = pieces;
-    memcpy(this->infoHash, infoHash, 20);
     memcpy(this->clientId, clientId, 20);
 
     currentPiece.resize(pieceManager.getPieceSize());
@@ -63,12 +74,53 @@ void PeerManager::download() {
         if (!bitField.at(i))
             continue;
 
+        bool rejected = false;
+
         for (int offset = 0; offset < pieceManager.getPieceSize(); offset += 0x4000) {
             connection.sendRequest(i, offset, 0x4000);
-            handleMessage(connection.receiveMessage());
+            try {
+                handleMessage(connection.receiveMessage());
+            } catch(RequestRejectedException &e) {
+                std::cout << "Piece " << i << " rejected!" << std::endl;
+                rejected = true;
+                break;
+            }
         }
 
+        if (rejected)
+            continue;
 
+        SHA1 hash;
+        hash.update(currentPiece);
+
+        auto actualHash = hash.final();
+        std::stringstream ss;
+        for(int j = 0; j < 20; j++) {
+            ss << std::hex << std::setfill('0') << std::setw(2) << +(uint8_t)metadata.info.pieces[i][j] << std::dec;
+        }
+
+        if (ss.str() != actualHash) {
+            std::cout << "Hashes didn't match for piece " << i << "!" << std::endl;
+            std::cout << "Desired: " << ss.str() << std::endl;
+            std::cout << "Actual:  " << actualHash << std::endl;
+            continue;
+        }
+
+        std::fstream file;
+
+        auto piecePath = pieceManager.getBasePath() + "." + actualHash;
+        file.open(piecePath, std::ios::out | std::ios::binary);
+
+        if (!file.is_open()) {
+            std::cout << "Error creating file" << std::endl;
+            std::cout << "Path: " << piecePath << std::endl;
+            continue;
+        }
+
+        file.write((char*)currentPiece.data(), currentPiece.size());
+        file.close();
+
+        pieceManager.writePiece(i, piecePath);
     }
 }
 
@@ -93,5 +145,9 @@ void PeerManager::handleHaveAll() {
     for(size_t i = 0; i < bitField.size(); i++) {
         bitField.at(i) = true;
     }
+}
+
+void PeerManager::handleHaveNone() {
+    std::cout << "Has none..." << std::endl;
 }
 

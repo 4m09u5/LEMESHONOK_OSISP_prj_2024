@@ -81,11 +81,9 @@ int main() {
         }
         std::cout << "Connected!" << std::endl;
 
-        PeerManager peerManager(connection, nullptr, pieceManager, "", "                    ");
+        PeerManager peerManager(connection, nullptr, pieceManager, metadata, "                    ");
         peerManager.download();
     }
-
-
 
     std::cout << "aboba";
 }

@@ -24,6 +24,8 @@ public:
 
     size_t getPieceSize() const;
 
+    const std::string &getBasePath() const;
+
     void writePiece(size_t pieceIndex, std::string piecePath);
 };
 

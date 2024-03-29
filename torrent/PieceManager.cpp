@@ -5,6 +5,7 @@
 #include <fstream>
 #include <csignal>
 #include <cmath>
+#include <iostream>
 #include "PieceManager.h"
 
 PieceManager::PieceManager(const std::vector<std::string> &files, const std::vector<size_t> &fileSizes, const std::string &basePath, size_t pieceSize) {
@@ -26,26 +27,44 @@ void PieceManager::writePiece(size_t pieceIndex, std::string piecePath) {
     int fileIndex = 0;
 
     for (const auto &current : fileSizes) {
-        if (cursor - current < 0)
+        if (cursor - (ssize_t)current < 0)
             break;
 
         cursor -= current;
         fileIndex++;
     }
 
-    std::fstream piece(basePath + piecePath, std::ios::in | std::ios::binary);
-    std::fstream file(basePath + files.at(fileIndex), std::ios::out | std::ios::binary);
-    file.seekp(cursor);
+    std::fstream piece;
+    std::fstream file;
 
-    if(!piece || !file)
+    piece.open(piecePath, std::ios::in | std::ios::binary);
+    file.open(basePath + files.at(fileIndex), std::ios::out | std::ios::binary);
+
+    if(!piece.is_open()) {
+        std::cout << "Couldn't open piece" << std::endl;
         return;
+    }
 
-    size_t toCopy = file.tellg();
+    if(!file.is_open()) {
+        std::cout << "Couldn't open piece" << std::endl;
+        return;
+    }
+
+
+    file.seekp(cursor);
+/*
+    if(!piece.is_open() || !file.is_open())
+        return;
+*/
+
+    piece.seekg(0, std::ios::end);
+    size_t toCopy = piece.tellg();
+    piece.seekg(0, std::ios::beg);
 
     while (toCopy) {
         char buffer[0x400];
 
-        size_t blockSize = sizeof(buffer) < toCopy ? toCopy : sizeof(buffer);
+        size_t blockSize = sizeof(buffer) < toCopy ? sizeof(buffer) : toCopy;
 
         piece.read(buffer, blockSize);
         file.write(buffer, blockSize);
@@ -65,4 +84,8 @@ size_t PieceManager::getPieceSize() const {
 
 size_t PieceManager::getTotalPieces() const {
     return totalPieces;
+}
+
+const std::string &PieceManager::getBasePath() const {
+    return basePath;
 }
