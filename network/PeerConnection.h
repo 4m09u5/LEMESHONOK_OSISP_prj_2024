@@ -24,6 +24,12 @@ public:
         return connection.connect();
     }
 
+    void changePort(uint16_t port) {
+        this->port = port;
+        connection.disconnect();
+        connection.connect();
+    }
+
     void sendHandshake() {
         std::vector<uint8_t> a{0x13, 'B', 'i', 't', 'T', 'o', 'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o', 'l', 0x0, 0x0, 0x0, 0x00, 0x00, 0x10, 0x00, 0x05, 0x08, 0xe4, 0x05, 0x54, 0xd7, 0x9c, 0xc3, 0x1d, 0x7b, 0x2b, 0xd6, 0x2b, 0x61, 0x9d, 0x44, 0xfd, 0x39, 0xaf, 0xf3, 0x37 ,'-', 'q', 'B', '4', '6', '3', '0', '-', 'k','8','h','j','0','w','g','e','j','6','c','h'};
 
@@ -92,6 +98,8 @@ public:
     Message receiveMessage() {
         Message result;
         std::vector<uint8_t> packet = connection.receivePacket(0);
+        if (packet.empty())
+            return {-1};
         if (packet.size() == 1) {
             result.setPayload({});
             result.setId(0);

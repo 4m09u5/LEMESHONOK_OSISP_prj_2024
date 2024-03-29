@@ -51,9 +51,14 @@ TorrentFile::TorrentFile(const std::string& path) {
         info.pieces.emplace_back(pieces.substr(i, 20));
 
     const auto& files = raw["info"]["files"].listValue;
-    for (auto file: files)
-        info.files.push_back({file["path"].rawValue, std::stoul(file["length"].rawValue)});
+    for (auto file: files) {
+        std::string path;
 
+        for (auto el : file["path"].listValue)
+            path += "/" + std::string(el.rawValue);
+
+        info.files.push_back({path, std::stoul(file["length"].rawValue)});
+    }
 
     for(const auto & it : raw["announce-list"][0].listValue) {
         announceList.emplace_back(parseAnnounce(it.rawValue));

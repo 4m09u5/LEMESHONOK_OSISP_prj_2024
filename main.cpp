@@ -8,6 +8,7 @@
 #include "bencode/TorrentFile.h"
 #include "network/PeerConnection.h"
 #include "utils/sha1.h"
+#include "torrent/PeerManager.h"
 
 void printPeers(std::string peers) {
     for(auto it = peers.begin(); it != peers.end(); it+=6) {
@@ -60,57 +61,28 @@ int main() {
 
     std::cout << std::endl;
 
+    std::vector<std::string> files;
+    std::vector<size_t> sizes;
+
+    for(auto el : metadata.info.files) {
+        sizes.push_back(el.length);
+        files.push_back(el.path);
+    }
+
+    PieceManager pieceManager(files, sizes, "/home/dzmitry/Desktop/download/", metadata.info.piece_length);
+
     for(const auto& peer : peers) {
-        try {
-            std::cout << "Connecting to " << peer.getAddr() << " - " << peer.getPort() << std::endl;
-            PeerConnection connection(peer.getAddr(), peer.getPort());
+        std::cout << "Connecting to " << peer.getAddr() << " - " << peer.getPort() << std::endl;
+        PeerConnection connection(peer.getAddr(), peer.getPort());
 
-            if(!connection.connect()) {
-                std::cout << "Fail" << std::endl;
-                continue;
-            }
-            std::cout << "Connected!" << std::endl;
-            connection.sendHandshake();
-            auto handshakeResponse = connection.receiveMessage();
-            std::cout << "Successfully shaked " << peer.getAddr() << " hand!" << std::endl;
-            connection.sendInterested();
-            try {
-                while(true) {
-                    auto interestedResponse = connection.receiveMessage();
-                }
-            } catch (...) {
-                std::cout << "Skipped shit stuff" << std::endl;
-            }
-
-            std::cout << "I told i am interested!" << std::endl;
-/*          std::ofstream file("piece.bin", std::ios::out | std::ios::binary);
-
-            file.write()*/
-
-            std::vector<uint8_t> piece;
-
-            for(size_t i = 0; i < metadata.info.piece_length; i += blockSize) {
-                connection.sendRequest(0, i, blockSize);
-                auto requestResponse = connection.receiveMessage();
-                piece.insert(piece.end(), requestResponse.getPayload().begin() + 8, requestResponse.getPayload().end());
-                std::cout << "Successfully got " << std::hex << i << " piece (" << requestResponse.getPayload().size() << ") size" << std::endl;
-            }
-
-            SHA1 hash;
-            hash.update(piece);
-
-
-            std::cout << "Desired hash: ";
-            for(int i = 0; i < 20; i++) {
-                std::cout << std::hex << +(uint8_t)metadata.info.pieces[0][i];
-            }
-            std::cout << "\nPiece hash: " << hash.final() << std::endl;
-            std::cout << "Breakpoint me!" << std::endl;
-            break;
-
-        } catch (...) {
-            std::cout << "Failed to perform a handshake" << std::endl;
+        if(!connection.connect()) {
+            std::cout << "Fail" << std::endl;
+            continue;
         }
+        std::cout << "Connected!" << std::endl;
+
+        PeerManager peerManager(connection, nullptr, pieceManager, "", "                    ");
+        peerManager.download();
     }
 
 

@@ -31,4 +31,8 @@ add_executable(BitTorrent main.cpp
         network/tcp.cpp
         network/tcp.h
         utils/SharedQueue.h
+        torrent/PeerManager.cpp
+        torrent/PeerManager.h
+        torrent/PieceManager.cpp
+        torrent/PieceManager.h
 )

@@ -20,16 +20,19 @@ enum MessageType {
     REQUEST = 6,
     PIECE = 7,
     CANCEL = 8,
-    PORT = 9,
+    PORT = 9,               //  Message Length [4], Type = 09 [1], Port [2]
     HAVE_ALL = 14,
-    ALLOWED_FAST = 17,
+    HAVE_NONE = 15,         //  Message Length [4], Type = 15
+    REJECT_REQUEST = 16,    //  Message Length [4], Type = 16 [1], Piece index [4], Offset [4], Length [4]
+    ALLOWED_FAST = 17,      //  Message Length [4], Type = 17 [1], Piece index [4]
+    EXTENDED = 20           //  Message Length [4], Type = 20 [1], Extended MSG id [1] ...
 };
 
 class Message {
     int16_t id;
     std::vector<uint8_t> payload;
 public:
-    Message(uint8_t id);
+    Message(int16_t id);
     Message();
 
     void addPayload(const std::vector<uint8_t>& data);

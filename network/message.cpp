@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "message.h"
 
-Message::Message(uint8_t id) {
+Message::Message(int16_t id) {
     this->id = id;
 }
 

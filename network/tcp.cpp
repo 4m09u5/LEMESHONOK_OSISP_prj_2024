@@ -86,7 +86,7 @@ std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize = 0) {
 
         if (code == 0) {
             std::cout << "Pidar niche ne skazal" << std::endl;
-            throw 1;
+            return {};
         }
 
         if (packetSize == 1953055251) {
