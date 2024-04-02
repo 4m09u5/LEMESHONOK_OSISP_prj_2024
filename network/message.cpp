@@ -42,8 +42,8 @@ const int16_t &Message::getId() const {
     return id;
 }
 
-void Message::setId(const int16_t &id) {
-    this->id = id;
+void Message::setId(const int16_t &data) {
+    this->id = data;
 }
 
 const std::vector<uint8_t> &Message::getPayload() const {
@@ -51,7 +51,7 @@ const std::vector<uint8_t> &Message::getPayload() const {
 }
 
 void Message::setPayload(const std::vector<uint8_t> &payload) {
-    Message::payload = payload;
+    this->payload = payload;
 }
 
 void Message::addPayload(uint32_t data) {

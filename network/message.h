@@ -42,7 +42,7 @@ public:
 
     const int16_t &getId() const;
 
-    void setId(const int16_t &id);
+    void setId(const int16_t &data);
 
     const std::vector<uint8_t> &getPayload() const;
 

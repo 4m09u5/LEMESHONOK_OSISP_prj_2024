@@ -56,7 +56,7 @@ void PeerManager::handlePiece(const std::vector<uint8_t> &piece) {
 }
 
 PeerManager::PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces,
-                         PieceManager &pieceManager, TorrentFile metadata, char *clientId) :
+                         PieceManager &pieceManager, const TorrentFile& metadata, char *clientId) :
                          connection(connection), pieceManager(pieceManager), metadata(metadata) {
     this->pieces = pieces;
     memcpy(this->clientId, clientId, 20);
@@ -84,6 +84,7 @@ void PeerManager::download() {
             connection.sendRequest(i, offset, 0x4000);
             try {
                 handleMessage(connection.receiveMessage());
+
             } catch(RequestRejectedException &e) {
                 std::cout << "Piece " << i << " rejected!" << std::endl;
                 rejected = true;
@@ -107,6 +108,7 @@ void PeerManager::download() {
             std::cout << "Hashes didn't match for piece " << i << "!" << std::endl;
             std::cout << "Desired: " << ss.str() << std::endl;
             std::cout << "Actual:  " << actualHash << std::endl;
+            i--;
             continue;
         }
 

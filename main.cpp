@@ -26,7 +26,7 @@ std::vector<Peer> parsePeers(const std::string& raw) {
 int main() {
     auto parser = BencodeParser();
 
-    TorrentFile metadata("Super_Cow.torrent");
+    TorrentFile metadata("example.torrent");
 
     size_t blockSize = 0x4000;
 
@@ -62,7 +62,7 @@ int main() {
         files.push_back(el.path);
     }
 
-    PieceManager pieceManager(files, sizes, "/home/dzmitry/Desktop/cow/", metadata.info.piece_length);
+    PieceManager pieceManager(files, sizes, "/home/dzmitry/Desktop/download/", metadata.info.piece_length);
 
     for(const auto& peer : peers) {
         std::cout << "Connecting to " << peer.getAddr() << " - " << peer.getPort() << std::endl;

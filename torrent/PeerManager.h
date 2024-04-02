@@ -25,7 +25,7 @@ class PeerManager {
 
     void handleMessage(Message message);
 public:
-    PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces, PieceManager &pieceManager, TorrentFile metadata, char *clientId);
+    PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces, PieceManager &pieceManager, const TorrentFile& metadata, char *clientId);
 
     void download();
     void applyBitfield(const std::vector<uint8_t> &vector);

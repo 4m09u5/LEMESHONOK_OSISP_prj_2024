@@ -22,8 +22,6 @@ public:
 
     void sendData(std::vector<uint8_t> data);
 
-    std::vector<uint8_t> receivePacket();
-
     std::vector<uint8_t> receivePacket(uint32_t buffersize = 0);
 };
 
