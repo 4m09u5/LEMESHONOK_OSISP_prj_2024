@@ -40,6 +40,8 @@ public:
     void handleHaveAll();
 
     void handleHaveNone();
+
+    void handleHave(const std::vector<uint8_t> &vector);
 };
 
 

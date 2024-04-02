@@ -50,12 +50,7 @@ void PieceManager::writePiece(size_t pieceIndex, std::string piecePath) {
         return;
     }
 
-
     file.seekp(cursor);
-/*
-    if(!piece.is_open() || !file.is_open())
-        return;
-*/
 
     piece.seekg(0, std::ios::end);
     size_t toCopy = piece.tellg();

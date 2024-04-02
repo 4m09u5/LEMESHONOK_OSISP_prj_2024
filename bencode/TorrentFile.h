@@ -30,10 +30,10 @@ struct Info {
 struct TorrentFile {
     TorrentFile(const std::string &path);
 
-    Info info;
-    std::string infoHash;
-    Announce announce;
-    std::vector<Announce> announceList;
+    Info info{};
+    std::string infoHash{};
+    Announce announce{};
+    std::vector<Announce> announceList{};
 };
 
 

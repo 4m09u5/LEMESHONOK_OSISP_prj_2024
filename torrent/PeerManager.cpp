@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstring>
 #include <fstream>
+#include <bitset>
 #include "PeerManager.h"
 #include "../utils/sha1.h"
 
@@ -19,7 +20,7 @@ void PeerManager::handleMessage(Message message) {
     switch(message.getId()) {
         case CHOKE: choked = true; break;
         case UNCHOKE: choked = false; break;
-        case HAVE: bitField.at(message.getPayload().at(0)) = true; break;
+        case HAVE: handleHave(message.getPayload()); break;
         case BITFIELD: applyBitfield(message.getPayload()); break;
         case PIECE: handlePiece(message.getPayload()); break;
         case ALLOWED_FAST: applyAllowedFast(message.getPayload()); break;
@@ -32,11 +33,13 @@ void PeerManager::handleMessage(Message message) {
     }
 }
 
-void PeerManager::applyBitfield(const std::vector<uint8_t> &bitfield) {
-    size_t byteCounter = 0;
-    for(auto el : bitfield) {
-        for(int i = 0; i < 8; i++) {
-            this->bitField.at(byteCounter + i) = el & (1 << (7 - i));
+void PeerManager::applyBitfield(const std::vector<uint8_t> &data) {
+    std::cout << "Applied bitfield" << std::endl;
+    bitField.clear();
+    for(auto el : data) {
+        auto set = std::bitset<8>(el);
+        for(int i = 8; i >= 0; i--) {
+            bitField.push_back(set[i]);
         }
     }
 }
@@ -62,7 +65,7 @@ PeerManager::PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces
     bitField.resize(pieceManager.getTotalPieces());
     choked = true;
 
-    connection.sendHandshake();
+    connection.sendHandshake(metadata.infoHash);
     connection.receiveMessage();
     idle();
 
@@ -139,10 +142,12 @@ void PeerManager::idle() {
 }
 
 void PeerManager::handlePort(const std::vector<uint8_t> &vector) {
+    std::cout << "Handled port" << std::endl;
     connection.changePort((vector.at(0) << 8) + vector.at(1));
 }
 
 void PeerManager::handleHaveAll() {
+    std::cout << "Handled haveAll" << std::endl;
     for(size_t i = 0; i < bitField.size(); i++) {
         bitField.at(i) = true;
     }
@@ -150,5 +155,10 @@ void PeerManager::handleHaveAll() {
 
 void PeerManager::handleHaveNone() {
     std::cout << "Has none..." << std::endl;
+}
+
+void PeerManager::handleHave(const std::vector<uint8_t> &vector) {
+    std::cout << "Handled have..." << std::endl;
+    bitField.at((vector.at(0) << 24) + (vector.at(1) << 16) + (vector.at(2) << 8) + vector.at(3)) = true;
 }
 

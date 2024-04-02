@@ -10,14 +10,6 @@
 #include "utils/sha1.h"
 #include "torrent/PeerManager.h"
 
-void printPeers(std::string peers) {
-    for(auto it = peers.begin(); it != peers.end(); it+=6) {
-        std::cout << +static_cast<unsigned char>(*it) << "." << +static_cast<unsigned char>(*(it + 1)) << "." <<
-                +static_cast<unsigned char>(*(it + 2)) << "." << +static_cast<unsigned char>(*(it + 3)) << ":" <<
-                +static_cast<unsigned short>(static_cast<unsigned short>(*(it + 4)) * 256 + static_cast<unsigned char>(*(it + 5))) << std::endl;
-    }
-}
-
 std::vector<Peer> parsePeers(const std::string& raw) {
     std::vector<Peer> peers;
     for(auto it = raw.begin(); it != raw.end(); it+=6) {
@@ -34,7 +26,7 @@ std::vector<Peer> parsePeers(const std::string& raw) {
 int main() {
     auto parser = BencodeParser();
 
-    TorrentFile metadata("example.torrent");
+    TorrentFile metadata("Super_Cow.torrent");
 
     size_t blockSize = 0x4000;
 
@@ -70,7 +62,7 @@ int main() {
         files.push_back(el.path);
     }
 
-    PieceManager pieceManager(files, sizes, "/home/dzmitry/Desktop/download/", metadata.info.piece_length);
+    PieceManager pieceManager(files, sizes, "/home/dzmitry/Desktop/cow/", metadata.info.piece_length);
 
     for(const auto& peer : peers) {
         std::cout << "Connecting to " << peer.getAddr() << " - " << peer.getPort() << std::endl;
