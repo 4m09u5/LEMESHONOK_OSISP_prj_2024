@@ -8,17 +8,16 @@
 
 #include <string>
 #include <vector>
+#include "../bencode/TorrentFile.h"
 
 class PieceManager {
-    std::vector<std::string> files;
-    std::vector<size_t> fileSizes;
+    TorrentFile metadata;
     std::string basePath;
-    size_t pieceSize;
     size_t totalSize;
     size_t totalPieces;
 
 public:
-    PieceManager(const std::vector<std::string> &files, const std::vector<size_t> &fileSizes, const std::string &basePath, size_t pieceSize);
+    PieceManager(TorrentFile& metadata, const std::string &basePath);
 
     size_t getTotalPieces() const;
 

@@ -20,6 +20,10 @@ public:
         this->port = port;
     }
 
+    ~PeerConnection() {
+        connection.disconnect();
+    }
+
     bool connect() {
         return connection.connect();
     }

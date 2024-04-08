@@ -15,10 +15,14 @@
 class Client {
     std::string peerId;
     SharedQueue<Peer*> queue;
+    const int threadNum;
     std::vector<std::thread> threads;
     std::vector<PeerConnection*> connections;
 public:
-    Client();
+    Client(const int threadNum);
+   ~Client() = default;
+
+    void downloadFile(const std::string& torrentPath, const std::string& downloadPath);
 };
 
 

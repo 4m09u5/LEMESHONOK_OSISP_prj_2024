@@ -56,7 +56,7 @@ void PeerManager::handlePiece(const std::vector<uint8_t> &piece) {
 }
 
 PeerManager::PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces,
-                         PieceManager &pieceManager, const TorrentFile& metadata, char *clientId) :
+                         PieceManager &pieceManager, TorrentFile& metadata, char *clientId) :
                          connection(connection), pieceManager(pieceManager), metadata(metadata) {
     this->pieces = pieces;
     memcpy(this->clientId, clientId, 20);
@@ -77,58 +77,56 @@ void PeerManager::download() {
     for (int i = 0; i < bitField.size(); i++) {
         if (!bitField.at(i))
             continue;
-
-        bool rejected = false;
-
-        for (int offset = 0; offset < pieceManager.getPieceSize(); offset += 0x4000) {
-            connection.sendRequest(i, offset, 0x4000);
-            try {
-                handleMessage(connection.receiveMessage());
-
-            } catch(RequestRejectedException &e) {
-                std::cout << "Piece " << i << " rejected!" << std::endl;
-                rejected = true;
-                break;
-            }
-        }
-
-        if (rejected)
-            continue;
-
-        SHA1 hash;
-        hash.update(currentPiece);
-
-        auto actualHash = hash.final();
-        std::stringstream ss;
-        for(int j = 0; j < 20; j++) {
-            ss << std::hex << std::setfill('0') << std::setw(2) << +(uint8_t)metadata.info.pieces[i][j] << std::dec;
-        }
-
-        if (ss.str() != actualHash) {
-            std::cout << "Hashes didn't match for piece " << i << "!" << std::endl;
-            std::cout << "Desired: " << ss.str() << std::endl;
-            std::cout << "Actual:  " << actualHash << std::endl;
-            i--;
-            continue;
-        }
-
-        std::fstream file;
-
-        auto piecePath = pieceManager.getBasePath() + "." + actualHash;
-        file.open(piecePath, std::ios::out | std::ios::binary);
-
-        if (!file.is_open()) {
-            std::cout << "Error creating file" << std::endl;
-            std::cout << "Path: " << piecePath << std::endl;
-            continue;
-        }
-
-        file.write((char*)currentPiece.data(), currentPiece.size());
-        file.close();
-
-        pieceManager.writePiece(i, piecePath);
+        downloadByPieceId(i);
     }
 }
+
+bool PeerManager::downloadByPieceId(size_t id) {
+    for (int offset = 0; offset < pieceManager.getPieceSize(); offset += 0x4000) {
+        connection.sendRequest(id, offset, 0x4000);
+        try {
+            handleMessage(connection.receiveMessage());
+        } catch(RequestRejectedException &e) {
+            return false;
+        }
+    }
+
+    SHA1 hash;
+    hash.update(currentPiece);
+
+    auto actualHash = hash.final();
+    std::stringstream ss;
+    for(int j = 0; j < 20; j++) {
+        ss << std::hex << std::setfill('0') << std::setw(2) << +(uint8_t)metadata.info.pieces[id][j] << std::dec;
+    }
+
+    if (ss.str() != actualHash) {
+        std::cout << "Hashes didn't match for piece " << id << "!" << std::endl;
+        std::cout << "Desired: " << ss.str() << std::endl;
+        std::cout << "Actual:  " << actualHash << std::endl;
+        //TODO: Put piece back to queue
+        return false;
+    }
+
+    std::fstream file;
+
+    auto piecePath = pieceManager.getBasePath() + "." + actualHash;
+    file.open(piecePath, std::ios::out | std::ios::binary);
+
+    if (!file.is_open()) {
+        std::cout << "Error creating file" << std::endl;
+        std::cout << "Path: " << piecePath << std::endl;
+        return false;
+    }
+
+    file.write((char*)currentPiece.data(), currentPiece.size());
+    file.close();
+
+    pieceManager.writePiece(id, piecePath);
+
+    return true;
+}
+
 
 void PeerManager::idle() {
     try {
@@ -163,4 +161,3 @@ void PeerManager::handleHave(const std::vector<uint8_t> &vector) {
     std::cout << "Handled have..." << std::endl;
     bitField.at((vector.at(0) << 24) + (vector.at(1) << 16) + (vector.at(2) << 8) + vector.at(3)) = true;
 }
-

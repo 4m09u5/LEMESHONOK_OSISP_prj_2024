@@ -18,32 +18,44 @@ TCP::TCP(std::string ip, std::string port) {
 }
 
 bool TCP::connect() {
-    sockaddr_in servaddr;
+    sockaddr_in servaddr;   //TODO clean ghbn shit
+    addrinfo *result, *rp;
+    addrinfo hints;
+    int s;
 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1)
-        return false;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = 0;
+    hints.ai_protocol = 0;
 
-    hostent *server = gethostbyname(ip.c_str());
-    if (server == NULL){
-        std::cout << "could Not resolve hostname :(" << std::endl;
-        close(sockfd);
+    s = getaddrinfo(ip.c_str(), port.c_str(), &hints, &result);
+    if (s != 0) {
         return false;
     }
 
-    bzero((char *) &servaddr, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(std::stoi(port));
-    bcopy((char *)server->h_addr, (char *)&servaddr.sin_addr.s_addr, server->h_length);
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
 
-    struct timeval timeout;
-    timeout.tv_sec = 3;
-    timeout.tv_usec = 0;
+        if (sockfd == -1)
+            continue;
 
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout,sizeof(timeout));
-    setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout,sizeof(timeout));
+        struct timeval timeout;
+        timeout.tv_sec = 3;
+        timeout.tv_usec = 0;
 
-    if (::connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr))!= 0)
+        setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout,sizeof(timeout));
+        setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout,sizeof(timeout));
+
+        if (::connect(sockfd, rp->ai_addr, rp->ai_addrlen) != -1)
+            break;
+
+        close(sockfd);
+    }
+
+    freeaddrinfo(result);
+
+    if (rp == NULL)
         return false;
 
     connected = true;

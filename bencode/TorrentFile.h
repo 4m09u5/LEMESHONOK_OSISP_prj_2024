@@ -9,22 +9,22 @@
 #include <string>
 
 struct Announce {
-    std::string protocol;
-    std::string hostname;
-    std::string port;
-    std::string query;
+    std::string protocol{};
+    std::string hostname{};
+    std::string port{};
+    std::string query{};
 };
 
 struct File {
-    std::string path;
+    std::string path{};
     size_t length;
 };
 
 struct Info {
-    std::vector<std::string> pieces;
-    std::string name;
+    std::vector<std::string> pieces{};
+    std::string name{};
     size_t piece_length;
-    std::vector<File> files;
+    std::vector<File> files{};
 };
 
 struct TorrentFile {

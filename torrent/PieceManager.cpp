@@ -8,29 +8,26 @@
 #include <iostream>
 #include "PieceManager.h"
 
-PieceManager::PieceManager(const std::vector<std::string> &files, const std::vector<size_t> &fileSizes, const std::string &basePath, size_t pieceSize) {
-    this->files = files;
-    this->fileSizes = fileSizes;
-    this->pieceSize = pieceSize;
+PieceManager::PieceManager(TorrentFile& metadata, const std::string &basePath) : metadata(metadata) {
     this->basePath = basePath;
 
     totalSize = 0;
-    for(auto size : fileSizes)
-        totalSize += size;
+    for(auto file : metadata.info.files)
+        totalSize += file.length;
 
-    totalPieces = std::ceil((double) totalSize / pieceSize);
+    totalPieces = std::ceil((double) totalSize / metadata.info.piece_length);
 }
 
 void PieceManager::writePiece(size_t pieceIndex, std::string piecePath) {
-    ssize_t cursor = pieceIndex * pieceSize;
+    ssize_t cursor = pieceIndex * metadata.info.piece_length;
 
     int fileIndex = 0;
 
-    for (const auto &current : fileSizes) {
-        if (cursor - (ssize_t)current < 0)
+    for (const auto &current : metadata.info.files) {
+        if (cursor - (ssize_t)current.length < 0)
             break;
 
-        cursor -= current;
+        cursor -= current.length;
         fileIndex++;
     }
 
@@ -38,7 +35,7 @@ void PieceManager::writePiece(size_t pieceIndex, std::string piecePath) {
     std::fstream file;
 
     piece.open(piecePath, std::ios::in | std::ios::binary);
-    file.open(basePath + files.at(fileIndex), std::ios::out | std::ios::binary);
+    file.open(basePath + metadata.info.files.at(fileIndex).path, std::ios::out | std::ios::binary);
 
     if(!piece.is_open()) {
         std::cout << "Couldn't open piece" << std::endl;
@@ -74,7 +71,7 @@ void PieceManager::writePiece(size_t pieceIndex, std::string piecePath) {
 }
 
 size_t PieceManager::getPieceSize() const {
-    return pieceSize;
+    return metadata.info.piece_length;
 }
 
 size_t PieceManager::getTotalPieces() const {
