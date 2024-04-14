@@ -1,5 +1,5 @@
 //
-// Created by dzmitry on 3/28/24.
+// Created by dzmitry on 4/11/24.
 //
 
 #include <sys/socket.h>
@@ -9,30 +9,27 @@
 #include <unistd.h>
 #include <iostream>
 #include <netdb.h>
-#include "tcp.h"
+#include "udp.h"
 
-TCP::TCP(std::string ip, std::string port) {
+UDP::UDP(std::string ip, std::string port) {
     this->ip = ip;
     this->port = port;
     connected = false;
 }
 
-bool TCP::connect() {
-    sockaddr_in servaddr;   //TODO clean ghbn shit
+bool UDP::connect() {
+    sockaddr_in servaddr;
     addrinfo *result, *rp;
     addrinfo hints;
-    int s;
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = 0;
     hints.ai_protocol = 0;
 
-    s = getaddrinfo(ip.c_str(), port.c_str(), &hints, &result);
-    if (s != 0) {
+    if (getaddrinfo(ip.c_str(), port.c_str(), &hints, &result) != 0)
         return false;
-    }
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
         sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
@@ -58,55 +55,26 @@ bool TCP::connect() {
     if (rp == NULL)
         return false;
 
-    connected = true;
-
     return true;
 }
 
-void TCP::sendData(std::vector<uint8_t> data) {
-    if (!connected)
-        return;
-
+void UDP::sendData(std::vector<uint8_t> data) {
     send(sockfd, data.data(), data.size(), 0);
 }
 
-void TCP::disconnect() {
+void UDP::disconnect() {
     close(sockfd);
 }
 
-std::vector<uint8_t> TCP::receiveData() {
-    std::vector<uint8_t> result(0x40);
-
-    ssize_t bytesRead = recv(sockfd, result.data(), result.size(), 0);
-
-    if (bytesRead == -1)
-        return {};
-
-    result.resize(bytesRead);
-
-    return result;
-}
-
-
-std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize) {
+std::vector<uint8_t> UDP::receivePacket(uint32_t packetSize) {
     uint32_t total = 0;
     std::vector<uint8_t> result(packetSize);
 
     if(!packetSize) {
         ssize_t code = recv(sockfd, &packetSize, sizeof(packetSize), MSG_WAITALL);
 
-        if (code == 0) {
-            std::cout << "Pidar niche ne skazal" << std::endl;
+        if (code == 0)
             throw std::runtime_error("Nothing received on socket");
-        }
-
-        if (packetSize == 1953055251) {
-            return receiveData();
-        }
-
-        packetSize = __builtin_bswap32(packetSize);
-
-        result.resize(packetSize);
     }
 
     while (total < packetSize) {

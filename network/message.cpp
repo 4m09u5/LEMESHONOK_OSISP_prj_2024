@@ -50,7 +50,7 @@ const std::vector<uint8_t> &Message::getPayload() const {
     return payload;
 }
 
-void Message::setPayload(const std::vector<uint8_t> &payload) {
+void Message::setPayload(std::vector<uint8_t> payload) {
     this->payload = payload;
 }
 

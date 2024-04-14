@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 project(BitTorrent)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 add_executable(BitTorrent main.cpp
         bencode/BencodeParser.cpp
@@ -35,4 +35,6 @@ add_executable(BitTorrent main.cpp
         torrent/PeerManager.h
         torrent/PieceManager.cpp
         torrent/PieceManager.h
+        network/udp.cpp
+        network/udp.h
 )

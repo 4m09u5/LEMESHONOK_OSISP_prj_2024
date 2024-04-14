@@ -56,8 +56,9 @@ void PeerManager::handlePiece(const std::vector<uint8_t> &piece) {
 }
 
 PeerManager::PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces,
-                         PieceManager &pieceManager, TorrentFile& metadata, char *clientId) :
+                         PieceManager& pieceManager, TorrentFile metadata, char *clientId) :
                          connection(connection), pieceManager(pieceManager), metadata(metadata) {
+
     this->pieces = pieces;
     memcpy(this->clientId, clientId, 20);
 

@@ -46,7 +46,7 @@ public:
 
     const std::vector<uint8_t> &getPayload() const;
 
-    void setPayload(const std::vector<uint8_t> &payload);
+    void setPayload(std::vector<uint8_t> payload);
 };
 
 

@@ -35,19 +35,34 @@ public:
     }
 
     void sendHandshake(std::string infoHash) {
-        std::vector<uint8_t> a{0x13, 'B', 'i', 't', 'T', 'o', 'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o', 'l', 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x08, 0xe4, 0x05, 0x54, 0xd7, 0x9c, 0xc3, 0x1d, 0x7b, 0x2b, 0xd6, 0x2b, 0x61, 0x9d, 0x44, 0xfd, 0x39, 0xaf, 0xf3, 0x37 ,'-', 'q', 'B', '4', '6', '3', '0', '-', 'k','8','h','j','0','w','g','e','j','6','c','h'};
-        //std::vector<uint8_t> a{0x13, 'B', 'i', 't', 'T', 'o', 'r', 'r', 'e', 'n', 't', ' ', 'p', 'r', 'o', 't', 'o', 'c', 'o', 'l', 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2e, 0x90, 0x23, 0x31, 0xba, 0xa5, 0xa9, 0x48, 0x44, 0xe0, 0x34, 0x86, 0xae, 0xc2, 0x5f, 0x28, 0xd5, 0x40, 0x3d, 0x67 ,'-', 'q', 'B', '4', '6', '3', '0', '-', 'k','8','h','j','0','w','g','e','j','6','c','h'};
-
         std::vector<uint8_t> message;
 
-        message.push_back(13);
+        message.push_back(0x13);
         for(char c : "BitTorrent protocol")
             message.push_back(c);
-        for(int i = 0; i < 8; i++)
+        for(int i = 0; i < 7; i++)
             message.push_back(0);
-        
 
-        connection.sendData(a);
+        for(int i = 0; i < 40; i += 2) {
+            uint8_t result = 0;
+
+            if (tolower(infoHash[i]) >= 'a')
+                result += (infoHash[i] - 'a' + 10) * 0x10;
+            else
+                result += (infoHash[i] - '0') * 0x10;
+
+            if (tolower(infoHash[i + 1]) >= 'a')
+                result += infoHash[i + 1] - 'a' + 10;
+            else
+                result += infoHash[i + 1] - '0';
+
+            message.push_back(result);
+        }
+
+        for(char c : "-qB4630-k8hj0wgej6ch")
+            message.push_back(c);
+
+        connection.sendData(message);
     }
 
     void sendKeepAlive() {
@@ -111,7 +126,7 @@ public:
 
     Message receiveMessage() {
         Message result;
-        std::vector<uint8_t> packet = connection.receivePacket(0);
+        std::vector<uint8_t> packet = connection.receivePacket();
         if (packet.empty())
             return {-1};
         result.setId(packet.at(0));
@@ -121,8 +136,10 @@ public:
             return result;
         }
 
-        if(result.getId() > 1)
-            result.setPayload(std::vector<uint8_t>(packet.begin() + 1, packet.end()));
+        if (result.getId() > 1) {
+            std::vector<uint8_t> payload = {packet.begin() + 1, packet.end()};
+            result.setPayload(payload);
+        }
 
         return result;
     }

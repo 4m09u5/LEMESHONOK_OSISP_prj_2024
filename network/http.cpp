@@ -19,18 +19,16 @@ void HTTP::addParameter(const std::string& parameter, const std::string& value) 
 }
 
 HTTPResponse HTTP::execute() {
-
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_desc < 0){
-        std::cout << "failed to create socket" << std::endl;
-        return HTTPResponse("");
-    }
+
+    if (socket_desc < 0)
+        throw std::runtime_error("Failed to create socket");
 
     server = gethostbyname(host.c_str());
+
     if (server == NULL){
-        std::cout << "could Not resolve hostname :(" << std::endl;
         close(socket_desc);
-        return HTTPResponse("");
+        throw std::runtime_error("Couldn't resolve hostname");
     }
 
     bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -39,9 +37,8 @@ HTTPResponse HTTP::execute() {
     bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
 
     if (connect(socket_desc, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
-        std::cout << "connection failed :(" << std::endl;
         close(socket_desc);
-        return HTTPResponse("");
+        throw std::runtime_error("HTTP connection failed");
     }
 
     std::string query = "";
@@ -53,18 +50,22 @@ HTTPResponse HTTP::execute() {
     std::string request = "GET " + resource + query + " HTTP/1.1\r\nHost: " + host + "\r\nConnection: close\r\n\r\n";
 
     if (send(socket_desc, request.c_str(), request.size(), 0) < 0){
-        std::cout << "failed to send request..." << std::endl;
         close(socket_desc);
-        return HTTPResponse("");
+        throw std::runtime_error("Couldn't send HTTP data");
     }
 
     ssize_t size;
     std::string raw_data;
+
     while ((size = recv(socket_desc, buffer, sizeof(buffer), 0)) > 0){
         raw_data.append(buffer, size);
     }
 
     close(socket_desc);
+
+    if (raw_data.empty())
+        throw std::runtime_error("Empty HTTP response");
+
     return HTTPResponse(raw_data);
 }
 

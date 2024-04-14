@@ -12,6 +12,8 @@
 #include "utils/sha1.h"
 #include "torrent/PeerManager.h"
 
+#include <format>
+
 std::vector<Peer> parsePeers(const std::string& raw) {
     std::vector<Peer> peers;
     for(auto it = raw.begin(); it != raw.end(); it+=6) {
@@ -32,42 +34,44 @@ class ThreadPool {
     std::vector<std::thread> threads;
     std::mutex mutex;
 public:
-    explicit ThreadPool(int workerCount, TorrentFile metadata, PieceManager pieceManager) {
+    explicit ThreadPool(int workerCount, TorrentFile metadata, PieceManager& pieceManager) {
         for (int i = 0; i < workerCount; ++i) {
-            threads.emplace_back([this, &pieceManager, &metadata](){
+            threads.emplace_back([this, &pieceManager, metadata](){
 
                 while(working) {
-                    Peer peer("", "");
-                    {
-                        std::lock_guard guard(mutex);
-                        if (peers.empty()) continue;
-                        peer = peers.front();
-                        peers.pop();
-                    }
-
-                    PeerConnection connection(peer.getAddr(), peer.getPort());
-
-                    if (!connection.connect()) {
-                        std::cout << peer.getAddr() << ":" << peer.getPort() << " fucked up!" << std::endl;
-                        continue;
-                    }
-
-                    std::cout << "Connected!" << std::endl;
-
-                    PeerManager peerManager(connection, nullptr, pieceManager, metadata, "                    ");
-
-                    while (working) {
-                        size_t task;
+                    try {
+                        Peer peer("", "");
                         {
                             std::lock_guard guard(mutex);
-                            if (tasks.empty()) continue;
-                            task = tasks.front();
-                            tasks.pop();
+                            if (peers.empty()) continue;
+                            peer = peers.front();
+                            peers.pop();
                         }
-                        if(!peerManager.downloadByPieceId(task)) {
-                            std::lock_guard guard(mutex);
-                            tasks.push(task);
+
+                        PeerConnection connection(peer.getAddr(), peer.getPort());
+
+                        if (!connection.connect())
+                            continue;
+
+                        std::cout << "Connected to " << peer.getAddr() << ":" << peer.getPort() << std::endl;
+
+                        PeerManager peerManager(connection, nullptr, pieceManager, metadata, "                    ");
+
+                        while (working) {
+                            size_t task;
+                            {
+                                std::lock_guard guard(mutex);
+                                if (tasks.empty()) continue;
+                                task = tasks.front();
+                                tasks.pop();
+                            }
+                            if (!peerManager.downloadByPieceId(task)) {
+                                std::lock_guard guard(mutex);
+                                tasks.push(task);
+                            }
                         }
+                    } catch (std::runtime_error &e) {
+                        std::cout << e.what() << std::endl;
                     }
                 }
             });
@@ -90,17 +94,48 @@ public:
     }
 };
 
-int main() {
-    auto parser = BencodeParser();
+std::string sizeToString(size_t size) {
+    std::vector<std::string> sizes = {"B", "kB", "MB", "GB", "TB"};
+
+    double result = size;
+    int i = 0;
+
+    for (; result >= 1024 && i < sizes.size() - 1; i++)
+        result /= 1024;
+
+    return std::format("{:.2f} {}", result, sizes.at(i));
+}
+
+void printInfo(TorrentFile &metadata) {
+    std::cout << "Label: " << metadata.info.name << std::endl;
+    std::cout << "Files: " << std::endl;
+
+    for (auto file : metadata.info.files) {
+        std::cout << std::format("\t{} ({})\n", file.path, sizeToString(file.length));
+    }
+
+    std::cout << std::endl;
+    std::cout << "Announce list: " << std::endl;
+
+    for (auto announce : metadata.announceList) {
+        std::cout << std::format("\t{}://{}:{}{}\n", announce.protocol, announce.hostname, announce.port, announce.query);
+    }
+
+    std::cout << std::endl;
+    std::cout << std::format("Piece length: {} ({})\n", metadata.info.piece_length, sizeToString(metadata.info.piece_length));
+    std::cout << "Info hash: " << metadata.infoHash << std::endl;
+}
+
+int main(int argc, char **argv) {
+    if (argc == 3) {
+        if (std::string(argv[1]) == "info") {
+            TorrentFile metadata(argv[2]);
+            printInfo(metadata);
+            return 0;
+        }
+    }
 
     TorrentFile metadata("example.torrent");
-
-    size_t blockSize = 0x4000;
-
-    std::cout << "Piece length: " << metadata.info.piece_length << std::endl;
-    std::cout << "Desired block size: " << blockSize << std::endl;
-    std::cout << "Blocks per piece: " << metadata.info.piece_length / blockSize << std::endl;
-    std::cout << "Info hash: " << metadata.infoHash << std::endl;
 
     std::string hash = URLEncode(metadata.infoHash);
 
@@ -112,6 +147,7 @@ int main() {
     request.addParameter("downloaded", "0");
     request.addParameter("left", "0");
 
+    BencodeParser parser;
     auto response = request.execute();
     std::cout << response.getData();
 

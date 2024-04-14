@@ -11,7 +11,7 @@
 Announce parseAnnounce(std::string raw) {
     Announce announce;
 
-    std::regex regex("(.+):\\/\\/([a-zA-Z0-9.\\/]+):?(\\d+)?(.+)?");
+    std::regex regex("(.+):\\/\\/([a-zA-Z0-9.]+):?(\\d+)?([a-zA-Z0-9.\\/]+)?");
     auto match = *std::sregex_iterator(raw.begin(), raw.end(), regex);
 
     announce.protocol = match[1];
@@ -27,9 +27,8 @@ TorrentFile::TorrentFile(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     std::stringstream ss;
 
-    if (!file.is_open()) {
-        return;
-    }
+    if (!file.is_open())
+        throw std::runtime_error("Couldn't open file " + path);
 
     ss << file.rdbuf() << std::flush;
     file.close();
