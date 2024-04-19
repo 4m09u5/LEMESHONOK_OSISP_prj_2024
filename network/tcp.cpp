@@ -41,7 +41,7 @@ bool TCP::connect() {
             continue;
 
         struct timeval timeout;
-        timeout.tv_sec = 3;
+        timeout.tv_sec = 2;
         timeout.tv_usec = 0;
 
         setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout,sizeof(timeout));
@@ -110,8 +110,7 @@ std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize) {
     }
 
     while (total < packetSize) {
-        ssize_t bytesRead = recv(sockfd, result.data() + total, packetSize, 0);
-
+        ssize_t bytesRead = recv(sockfd, result.data() + total, packetSize - total, 0);
         if (bytesRead == -1)
             return {};
 

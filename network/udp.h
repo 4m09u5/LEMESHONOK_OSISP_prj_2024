@@ -21,7 +21,7 @@ public:
     void disconnect();
 
     void sendData(std::vector<uint8_t> data);
-    std::vector<uint8_t> receivePacket(uint32_t buffersize = 0);
+    std::vector<uint8_t> receivePacket(size_t buffersize = 0x800);
 };
 
 #endif //BITTORRENT_UDP_H

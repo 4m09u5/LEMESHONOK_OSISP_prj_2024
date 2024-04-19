@@ -29,7 +29,7 @@ bool UDP::connect() {
     hints.ai_protocol = 0;
 
     if (getaddrinfo(ip.c_str(), port.c_str(), &hints, &result) != 0)
-        return false;
+        throw std::runtime_error("getaddrinfo error");
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
         sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
@@ -50,41 +50,32 @@ bool UDP::connect() {
         close(sockfd);
     }
 
-    freeaddrinfo(result);
-
     if (rp == NULL)
-        return false;
+        throw std::runtime_error("UDP: cannot connect");
+
+    freeaddrinfo(result);
 
     return true;
 }
 
 void UDP::sendData(std::vector<uint8_t> data) {
-    send(sockfd, data.data(), data.size(), 0);
+    write(sockfd, data.data(), data.size());
 }
 
 void UDP::disconnect() {
     close(sockfd);
 }
 
-std::vector<uint8_t> UDP::receivePacket(uint32_t packetSize) {
-    uint32_t total = 0;
+std::vector<uint8_t> UDP::receivePacket(size_t packetSize) {
+    ssize_t total = 0;
     std::vector<uint8_t> result(packetSize);
 
-    if(!packetSize) {
-        ssize_t code = recv(sockfd, &packetSize, sizeof(packetSize), MSG_WAITALL);
+    total = read(sockfd, result.data(), packetSize);
 
-        if (code == 0)
-            throw std::runtime_error("Nothing received on socket");
-    }
+    if (total <= 0)
+        throw std::runtime_error("Nothing received on socket");
 
-    while (total < packetSize) {
-        ssize_t bytesRead = recv(sockfd, result.data() + total, packetSize, 0);
-
-        if (bytesRead == -1)
-            return {};
-
-        total += bytesRead;
-    }
+    result.resize(total);
 
     return result;
 }

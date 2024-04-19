@@ -7,6 +7,7 @@
 
 
 #include <string>
+#include <iostream>
 #include "tcp.h"
 #include "message.h"
 
@@ -127,19 +128,26 @@ public:
     Message receiveMessage() {
         Message result;
         std::vector<uint8_t> packet = connection.receivePacket();
-        if (packet.empty())
-            return {-1};
-        result.setId(packet.at(0));
 
+        if (packet.empty()) {
+            // Handle empty packet case
+            result.setId(-1);
+            return result;
+        }
+
+        // Set the message ID from the first byte of the packet
+        result.setId(packet[0]);
+
+        // If the packet contains only one byte, set an empty payload
         if (packet.size() == 1) {
             result.setPayload({});
             return result;
         }
 
-        if (result.getId() > 1) {
-            std::vector<uint8_t> payload = {packet.begin() + 1, packet.end()};
-            result.setPayload(payload);
-        }
+        // Create a new vector with the payload data
+        std::vector<uint8_t> payload(packet.begin() + 1, packet.end());
+        result.setPayload(std::move(payload));
+        std::cout << "OK!!" << std::endl;
 
         return result;
     }

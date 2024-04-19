@@ -38,7 +38,7 @@ void PeerManager::applyBitfield(const std::vector<uint8_t> &data) {
     bitField.clear();
     for(auto el : data) {
         auto set = std::bitset<8>(el);
-        for(int i = 8; i >= 0; i--) {
+        for(int i = 7; i >= 0; i--) {
             bitField.push_back(set[i]);
         }
     }
@@ -138,7 +138,7 @@ void PeerManager::idle() {
             handleMessage(message);
         }
     } catch (...) {
-        std::cout << "Handled some shit";
+        std::cout << "Idle error" << std::endl;
     }
 }
 
