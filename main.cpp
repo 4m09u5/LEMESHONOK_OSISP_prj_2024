@@ -201,16 +201,35 @@ int main(int argc, char **argv) {
 
     PieceManager pieceManager(metadata, "/home/dzmitry/Desktop/download/");
 
-    ThreadPool threadPool(1, metadata, pieceManager);
 
-    for(const auto& peer : peers) {
-        threadPool.addPeer(peer);
-    }
-
-    for(int i = 0; i < 100; i++) {
-        threadPool.download(i);
-    }
 
     std::cout << "Im sleeping" << std::endl;
-    sleep(100000);
+    while(true) {
+        try {
+            Peer peer("", "");
+            {
+                if (peers.empty()) continue;
+                peer = peers.back();
+                peers.pop_back();
+                std::cout << std::format("I took {}:{}\n", peer.getAddr(), peer.getPort());
+            }
+
+            PeerConnection connection(peer.getAddr(), peer.getPort());
+
+            if (!connection.connect())
+                continue;
+
+            std::cout << "Connected to " << peer.getAddr() << ":" << peer.getPort() << std::endl;
+
+            PeerManager peerManager(connection, nullptr, pieceManager, metadata, "                    ");
+
+            for(int i = 0; i < 100; i++) {
+                if (!peerManager.downloadByPieceId(i)) {
+                    std::cout << "FAIL" << std::endl;
+                }
+            }
+        } catch (std::runtime_error &e) {
+            std::cout << e.what() << std::endl;
+        }
+    }
 }

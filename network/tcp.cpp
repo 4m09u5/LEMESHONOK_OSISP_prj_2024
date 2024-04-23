@@ -67,6 +67,10 @@ void TCP::sendData(std::vector<uint8_t> data) {
     if (!connected)
         return;
 
+    if(data.at(4) == 2) {
+        std::cout << "INTERESTED" << std::endl;
+    }
+
     send(sockfd, data.data(), data.size(), 0);
 }
 

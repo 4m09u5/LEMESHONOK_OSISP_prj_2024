@@ -3,6 +3,7 @@
 //
 
 #include <cstdint>
+#include <iostream>
 #include "message.h"
 
 Message::Message(int16_t id) {
@@ -24,8 +25,8 @@ void Message::addPayload(const std::vector<bool> &data) {
 std::vector<uint8_t> Message::getVector() {
     std::vector<uint8_t> data;
 
-    for(int i = 0; i < 4; i++) {
-        data.emplace_back(static_cast<uint8_t>((payload.size() + 1) >> (8 * (3 - i))));
+    for(int i = 3; i >= 0; i--) {
+        data.push_back((payload.size() + 1) >> (i * 8));
     }
 
     if(id != -1)
