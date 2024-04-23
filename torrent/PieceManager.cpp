@@ -35,7 +35,7 @@ void PieceManager::writePiece(size_t pieceIndex, std::string piecePath) {
     std::fstream file;
 
     piece.open(piecePath, std::ios::in | std::ios::binary);
-    file.open(basePath + metadata.info.files.at(fileIndex).path, std::ios::out | std::ios::binary);
+    file.open(basePath + metadata.info.files.at(fileIndex).path, std::ios::out | std::ios::binary | std::ios::app);
 
     if(!piece.is_open()) {
         std::cout << "Couldn't open piece" << std::endl;
@@ -67,7 +67,9 @@ void PieceManager::writePiece(size_t pieceIndex, std::string piecePath) {
     file.close();
     piece.close();
 
-    unlink((basePath + piecePath).c_str());
+    std::cout << "Wrote piece " << pieceIndex << std::endl;
+
+    unlink(piecePath.c_str());
 }
 
 size_t PieceManager::getPieceSize() const {

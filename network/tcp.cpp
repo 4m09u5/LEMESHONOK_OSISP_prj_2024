@@ -67,10 +67,6 @@ void TCP::sendData(std::vector<uint8_t> data) {
     if (!connected)
         return;
 
-    if(data.at(4) == 2) {
-        std::cout << "INTERESTED" << std::endl;
-    }
-
     send(sockfd, data.data(), data.size(), 0);
 }
 
@@ -100,7 +96,6 @@ std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize) {
         ssize_t code = recv(sockfd, &packetSize, sizeof(packetSize), MSG_WAITALL);
 
         if (code == 0) {
-            std::cout << "Pidar niche ne skazal" << std::endl;
             throw std::runtime_error("Nothing received on socket");
         }
 

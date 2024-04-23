@@ -32,6 +32,7 @@ std::vector<Peer> parsePeers(const std::string& raw) {
 class ThreadPool {
     bool working = true;
     std::queue<size_t> tasks;
+    std::vector<size_t> done;
     std::queue<Peer> peers;
     std::vector<std::thread> threads;
     std::mutex mutex;
@@ -41,14 +42,13 @@ public:
             threads.emplace_back([this, &pieceManager, metadata](){
 
                 while(working) {
-                    try {
+                    try {   //TODO rearrange try
                         Peer peer("", "");
                         {
                             std::lock_guard guard(mutex);
                             if (peers.empty()) continue;
                             peer = peers.front();
                             peers.pop();
-                            std::cout << std::format("I took {}:{}\n", peer.getAddr(), peer.getPort());
                         }
 
                         PeerConnection connection(peer.getAddr(), peer.getPort());
@@ -65,8 +65,25 @@ public:
                             {
                                 std::lock_guard guard(mutex);
                                 if (tasks.empty()) {
-                                    working = false;
-                                    break;
+                                    for(int t = 0; t < pieceManager.getTotalPieces(); t++) {
+                                        bool found = false;
+                                        for (int i = 0; i < done.size(); i++) {
+                                            if (done.at(i) == t) {
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+                                        if (found == false) {
+                                            tasks.push(t);
+                                            std::cout << "Recovered task " << t << std::endl;
+                                        }
+                                    }
+
+                                    if (tasks.empty()) {
+                                        std::cout << "Completed" << std::endl;
+                                        working = false;
+                                        break;
+                                    }
                                 }
                                 task = tasks.front();
                                 tasks.pop();
@@ -74,6 +91,9 @@ public:
                             if (!peerManager.downloadByPieceId(task)) {
                                 std::lock_guard guard(mutex);
                                 tasks.push(task);
+                            } else {
+                                std::lock_guard guard(mutex);
+                                done.push_back(task);
                             }
                         }
                     } catch (std::runtime_error &e) {
@@ -141,7 +161,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    TorrentFile metadata("bbb.torrent");
+    TorrentFile metadata("KFP.torrent");
 
     std::string hash = URLEncode(metadata.infoHash);
 
@@ -217,5 +237,7 @@ int main(int argc, char **argv) {
     }
 
     std::cout << "Im sleeping" << std::endl;
-    sleep(100000);
+    while (true) {
+        sleep(100000);
+    }
 }

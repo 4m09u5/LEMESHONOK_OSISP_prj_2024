@@ -28,13 +28,10 @@ void PeerManager::handleMessage(Message message) {
         case HAVE_ALL: handleHaveAll(); break;
         case REJECT_REQUEST: throw RequestRejectedException();
         case HAVE_NONE: handleHaveNone(); break;
-        default:
-            std::cout << "UNHANDLED MESSAGE!!! ID: " << message.getId() << std::endl;
     }
 }
 
 void PeerManager::applyBitfield(const std::vector<uint8_t> &data) {
-    std::cout << "Applied bitfield" << std::endl;
     bitField.clear();
     for(auto el : data) {
         auto set = std::bitset<8>(el);
@@ -83,10 +80,14 @@ void PeerManager::download() {
 }
 
 bool PeerManager::downloadByPieceId(size_t id) {
-    for (int offset = 0; offset < pieceManager.getPieceSize(); offset += 0x4000) {
-        connection.sendRequest(id, offset, 0x4000);
+    for (size_t base = 0; base < pieceManager.getPieceSize(); base += 0xc000) {
+        for (size_t offset = base; offset < std::min(pieceManager.getPieceSize(), base + 0xc000); offset += 0x4000) {
+            connection.sendRequest(id, offset, 0x4000);
+        }
         try {
-            handleMessage(connection.receiveMessage());
+            for(size_t offset = base; offset < std::min(pieceManager.getPieceSize(), base + 0xc000); offset += 0x4000) {
+                handleMessage(connection.receiveMessage());
+            }
         } catch(RequestRejectedException &e) {
             return false;
         }
@@ -138,27 +139,23 @@ void PeerManager::idle() {
             handleMessage(message);
         }
     } catch (...) {
-        std::cout << "Idle error" << std::endl;
     }
 }
 
 void PeerManager::handlePort(const std::vector<uint8_t> &vector) {
-    std::cout << "Handled port" << std::endl;
     connection.changePort((vector.at(0) << 8) + vector.at(1));
 }
 
 void PeerManager::handleHaveAll() {
-    std::cout << "Handled haveAll" << std::endl;
     for(size_t i = 0; i < bitField.size(); i++) {
         bitField.at(i) = true;
     }
 }
 
 void PeerManager::handleHaveNone() {
-    std::cout << "Has none..." << std::endl;
+    ;
 }
 
 void PeerManager::handleHave(const std::vector<uint8_t> &vector) {
-    std::cout << "Handled have..." << std::endl;
     bitField.at((vector.at(0) << 24) + (vector.at(1) << 16) + (vector.at(2) << 8) + vector.at(3)) = true;
 }
