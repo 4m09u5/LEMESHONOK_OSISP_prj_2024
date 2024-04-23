@@ -11,7 +11,7 @@
 Announce parseAnnounce(std::string raw) {
     Announce announce;
 
-    std::regex regex("(.+):\\/\\/([a-zA-Z0-9.]+):?(\\d+)?([a-zA-Z0-9.\\/]+)?");
+    std::regex regex("(.+):\\/\\/([a-zA-Z0-9.-]+):?(\\d+)?([a-zA-Z0-9.\\/]+)?");
     auto match = *std::sregex_iterator(raw.begin(), raw.end(), regex);
 
     announce.protocol = match[1];

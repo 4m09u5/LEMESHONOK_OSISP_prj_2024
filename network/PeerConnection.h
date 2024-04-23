@@ -60,7 +60,7 @@ public:
             message.push_back(result);
         }
 
-        for(char c : "-qB4630-k8hj0wgej6ch")
+        for (char c : std::string("-qB4630-k8hj0wgej6ch"))
             message.push_back(c);
 
         connection.sendData(message);
@@ -135,19 +135,15 @@ public:
             return result;
         }
 
-        // Set the message ID from the first byte of the packet
         result.setId(packet[0]);
 
-        // If the packet contains only one byte, set an empty payload
         if (packet.size() == 1) {
             result.setPayload({});
             return result;
         }
 
-        // Create a new vector with the payload data
         std::vector<uint8_t> payload(packet.begin() + 1, packet.end());
-        result.setPayload(std::move(payload));
-        std::cout << "OK!!" << std::endl;
+        result.setPayload(payload);
 
         return result;
     }

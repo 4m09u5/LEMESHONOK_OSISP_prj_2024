@@ -64,7 +64,10 @@ public:
                             size_t task;
                             {
                                 std::lock_guard guard(mutex);
-                                if (tasks.empty()) continue;
+                                if (tasks.empty()) {
+                                    working = false;
+                                    break;
+                                }
                                 task = tasks.front();
                                 tasks.pop();
                             }
@@ -138,7 +141,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    TorrentFile metadata("KFP.torrent");
+    TorrentFile metadata("bbb.torrent");
 
     std::string hash = URLEncode(metadata.infoHash);
 
@@ -167,7 +170,7 @@ int main(int argc, char **argv) {
         pm.connect();
         peers = pm.getPeers(metadata.infoHash);
     } catch (std::runtime_error &e) {
-        std::cout << "UDP failed" << std::endl;
+        std::cout << "UDP failed: " << e.what() << std::endl;
 
         HTTP request(metadata.announce.hostname, metadata.announce.port, metadata.announce.query);
         request.addParameter("info_hash", hash);
@@ -201,35 +204,18 @@ int main(int argc, char **argv) {
 
     PieceManager pieceManager(metadata, "/home/dzmitry/Desktop/download/");
 
+    ThreadPool threadPool(8, metadata, pieceManager);
 
+    for(const auto& peer : peers) {
+        threadPool.addPeer(peer);
+    }
+
+    std::cout << "Total pieces: " << pieceManager.getTotalPieces() << std::endl;
+
+    for(int i = 0; i < pieceManager.getTotalPieces(); i++) {
+        threadPool.download(i);
+    }
 
     std::cout << "Im sleeping" << std::endl;
-    while(true) {
-        try {
-            Peer peer("", "");
-            {
-                if (peers.empty()) continue;
-                peer = peers.back();
-                peers.pop_back();
-                std::cout << std::format("I took {}:{}\n", peer.getAddr(), peer.getPort());
-            }
-
-            PeerConnection connection(peer.getAddr(), peer.getPort());
-
-            if (!connection.connect())
-                continue;
-
-            std::cout << "Connected to " << peer.getAddr() << ":" << peer.getPort() << std::endl;
-
-            PeerManager peerManager(connection, nullptr, pieceManager, metadata, "                    ");
-
-            for(int i = 0; i < 100; i++) {
-                if (!peerManager.downloadByPieceId(i)) {
-                    std::cout << "FAIL" << std::endl;
-                }
-            }
-        } catch (std::runtime_error &e) {
-            std::cout << e.what() << std::endl;
-        }
-    }
+    sleep(100000);
 }
