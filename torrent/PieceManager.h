@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include "../bencode/TorrentFile.h"
+#include "PieceData.h"
 
 class PieceManager {
     TorrentFile metadata;
@@ -25,7 +26,11 @@ public:
 
     const std::string &getBasePath() const;
 
-    void writePiece(size_t pieceIndex, std::string piecePath);
+    void writePiece(size_t pieceIndex, std::vector<uint8_t> &piece);
+
+    std::vector<PieceData> generatePieces();
+
+    size_t getTotalSize() const;
 };
 
 

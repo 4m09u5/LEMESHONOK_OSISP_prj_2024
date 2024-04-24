@@ -28,7 +28,7 @@ public:
     PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces, PieceManager &pieceManager, TorrentFile metadata, char *clientId);
 
     void download();
-    bool downloadByPieceId(size_t id);
+    bool downloadPiece(PieceData data);
     void applyBitfield(const std::vector<uint8_t> &vector);
     void handlePiece(const std::vector<uint8_t> &vector);
 
@@ -43,6 +43,10 @@ public:
     void handleHaveNone();
 
     void handleHave(const std::vector<uint8_t> &vector);
+
+    void downloadBlock(size_t index, size_t offset, size_t length);
+
+    bool performHandshake();
 };
 
 

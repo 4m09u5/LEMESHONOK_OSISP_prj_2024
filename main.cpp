@@ -31,8 +31,9 @@ std::vector<Peer> parsePeers(const std::string& raw) {
 
 class ThreadPool {
     bool working = true;
-    std::queue<size_t> tasks;
-    std::vector<size_t> done;
+    std::queue<PieceData> tasks;
+    std::vector<PieceData> pending;    //TODO pending
+    std::vector<PieceData> done;
     std::queue<Peer> peers;
     std::vector<std::thread> threads;
     std::mutex mutex;
@@ -40,64 +41,54 @@ public:
     explicit ThreadPool(int workerCount, TorrentFile metadata, PieceManager& pieceManager) {
         for (int i = 0; i < workerCount; ++i) {
             threads.emplace_back([this, &pieceManager, metadata](){
-
                 while(working) {
-                    try {   //TODO rearrange try
-                        Peer peer("", "");
+                    Peer peer("", "");
+                    {
+                        std::lock_guard guard(mutex);
+                        if (peers.empty()) continue;
+                        peer = peers.front();
+                        peers.pop();
+                    }
+
+                    PeerConnection connection(peer.getAddr(), peer.getPort());
+
+                    if (!connection.connect())
+                        continue;
+
+                    std::cout << "Connected to " << peer.getAddr() << ":" << peer.getPort() << std::endl;
+
+                    PeerManager peerManager(connection, nullptr, pieceManager, metadata, "                    ");
+
+                    if(!peerManager.performHandshake())
+                        continue;
+
+                    while (working) {
+                        PieceData task;
                         {
                             std::lock_guard guard(mutex);
-                            if (peers.empty()) continue;
-                            peer = peers.front();
-                            peers.pop();
+                            if (tasks.empty()) {
+                                continue;
+                            }
+                            task = tasks.front();
+                            tasks.pop();
+                        }
+                        bool successful;
+
+                        for (int i = 0; i < 3; i++) {
+                            successful = peerManager.downloadPiece(task);
+                            if (successful)
+                                break;
+                            std::cout << "Failed piece " << task.index << " (" << i << ")." << std::endl;
                         }
 
-                        PeerConnection connection(peer.getAddr(), peer.getPort());
-
-                        if (!connection.connect())
-                            continue;
-
-                        std::cout << "Connected to " << peer.getAddr() << ":" << peer.getPort() << std::endl;
-
-                        PeerManager peerManager(connection, nullptr, pieceManager, metadata, "                    ");
-
-                        while (working) {
-                            size_t task;
-                            {
-                                std::lock_guard guard(mutex);
-                                if (tasks.empty()) {
-                                    for(int t = 0; t < pieceManager.getTotalPieces(); t++) {
-                                        bool found = false;
-                                        for (int i = 0; i < done.size(); i++) {
-                                            if (done.at(i) == t) {
-                                                found = true;
-                                                break;
-                                            }
-                                        }
-                                        if (found == false) {
-                                            tasks.push(t);
-                                            std::cout << "Recovered task " << t << std::endl;
-                                        }
-                                    }
-
-                                    if (tasks.empty()) {
-                                        std::cout << "Completed" << std::endl;
-                                        working = false;
-                                        break;
-                                    }
-                                }
-                                task = tasks.front();
-                                tasks.pop();
-                            }
-                            if (!peerManager.downloadByPieceId(task)) {
-                                std::lock_guard guard(mutex);
-                                tasks.push(task);
-                            } else {
-                                std::lock_guard guard(mutex);
-                                done.push_back(task);
-                            }
+                        if (!successful) {
+                            std::lock_guard guard(mutex);
+                            tasks.push(task);
+                            break;
+                        } else {
+                            std::lock_guard guard(mutex);
+                            done.push_back(task);
                         }
-                    } catch (std::runtime_error &e) {
-                        std::cout << e.what() << std::endl;
                     }
                 }
             });
@@ -109,9 +100,9 @@ public:
         for (auto &t : threads) t.join();
     }
 
-    void download(size_t task) {
+    void download(PieceData piece) {
         std::lock_guard guard(mutex);
-        tasks.push(task);
+        tasks.push(piece);
     }
 
     void addPeer(Peer peer) {
@@ -232,8 +223,10 @@ int main(int argc, char **argv) {
 
     std::cout << "Total pieces: " << pieceManager.getTotalPieces() << std::endl;
 
-    for(int i = 0; i < pieceManager.getTotalPieces(); i++) {
-        threadPool.download(i);
+    auto pieces = pieceManager.generatePieces();
+
+    for (auto piece : pieces) {
+        threadPool.download(piece);
     }
 
     std::cout << "Im sleeping" << std::endl;

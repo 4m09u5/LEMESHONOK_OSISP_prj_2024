@@ -59,72 +59,61 @@ PeerManager::PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces
     this->pieces = pieces;
     memcpy(this->clientId, clientId, 20);
 
-    currentPiece.resize(pieceManager.getPieceSize());
     bitField.resize(pieceManager.getTotalPieces());
     choked = true;
-
-    connection.sendHandshake(metadata.infoHash);
-    connection.receiveMessage();
-    idle();
-
-    connection.sendInterested();
-    idle();
 }
 
-void PeerManager::download() {
-    for (int i = 0; i < bitField.size(); i++) {
-        if (!bitField.at(i))
-            continue;
-        downloadByPieceId(i);
+bool PeerManager::performHandshake() {
+    try {
+        connection.sendHandshake(metadata.infoHash);
+        connection.receiveMessage();
+        idle();
+
+        connection.sendInterested();
+        idle();
+        return true;
+    }
+    catch (...) {
+        return false;
     }
 }
 
-bool PeerManager::downloadByPieceId(size_t id) {
-    for (size_t base = 0; base < pieceManager.getPieceSize(); base += 0xc000) {
-        for (size_t offset = base; offset < std::min(pieceManager.getPieceSize(), base + 0xc000); offset += 0x4000) {
-            connection.sendRequest(id, offset, 0x4000);
-        }
+void PeerManager::downloadBlock(size_t index, size_t offset, size_t length) {
+    connection.sendRequest(index, offset, length);
+    handleMessage(connection.receiveMessage());
+}
+
+bool PeerManager::downloadPiece(PieceData data) {
+    if (choked || !bitField.at(data.index))
+        return false;
+
+    currentPiece.resize(data.length);
+
+    size_t left = data.length;
+
+    for (size_t offset = 0; left > 0; offset += 0x4000) {
         try {
-            for(size_t offset = base; offset < std::min(pieceManager.getPieceSize(), base + 0xc000); offset += 0x4000) {
-                handleMessage(connection.receiveMessage());
-            }
-        } catch(RequestRejectedException &e) {
+            downloadBlock(data.index, offset, std::min(left, (size_t) 0x4000));
+        }
+        catch (...) {
             return false;
         }
+        left -= std::min(left, (size_t)0x4000);
     }
 
     SHA1 hash;
     hash.update(currentPiece);
 
     auto actualHash = hash.final();
-    std::stringstream ss;
-    for(int j = 0; j < 20; j++) {
-        ss << std::hex << std::setfill('0') << std::setw(2) << +(uint8_t)metadata.info.pieces[id][j] << std::dec;
-    }
 
-    if (ss.str() != actualHash) {
-        std::cout << "Hashes didn't match for piece " << id << "!" << std::endl;
-        std::cout << "Desired: " << ss.str() << std::endl;
+    if (data.hash != actualHash) {
+        std::cout << "Hashes didn't match for piece " << data.index << "!" << std::endl;
+        std::cout << "Desired: " << data.hash << std::endl;
         std::cout << "Actual:  " << actualHash << std::endl;
-        //TODO: Put piece back to queue
         return false;
     }
 
-    std::fstream file;
-
-    auto piecePath = pieceManager.getBasePath() + "." + actualHash;
-    file.open(piecePath, std::ios::out | std::ios::binary);
-
-    if (!file.is_open()) {
-        std::cout << "Error creating file" << std::endl;
-        std::cout << "Path: " << piecePath << std::endl;
-        return false;
-    }
-
-    file.write((char*)currentPiece.data(), currentPiece.size());
-    file.close();
-
-    pieceManager.writePiece(id, piecePath);
+    pieceManager.writePiece(data.index, currentPiece);
 
     return true;
 }

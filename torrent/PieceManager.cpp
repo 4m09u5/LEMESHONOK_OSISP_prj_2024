@@ -6,6 +6,9 @@
 #include <csignal>
 #include <cmath>
 #include <iostream>
+#include <cstdint>
+#include <format>
+#include <iomanip>
 #include "PieceManager.h"
 
 PieceManager::PieceManager(TorrentFile& metadata, const std::string &basePath) : metadata(metadata) {
@@ -18,7 +21,7 @@ PieceManager::PieceManager(TorrentFile& metadata, const std::string &basePath) :
     totalPieces = std::ceil((double) totalSize / metadata.info.piece_length);
 }
 
-void PieceManager::writePiece(size_t pieceIndex, std::string piecePath) {
+void PieceManager::writePiece(size_t pieceIndex, std::vector<uint8_t> &piece) {
     ssize_t cursor = pieceIndex * metadata.info.piece_length;
 
     int fileIndex = 0;
@@ -31,45 +34,40 @@ void PieceManager::writePiece(size_t pieceIndex, std::string piecePath) {
         fileIndex++;
     }
 
-    std::fstream piece;
-    std::fstream file;
+    size_t toWrite = metadata.info.piece_length;
+    size_t pieceOffset = 0;
 
-    piece.open(piecePath, std::ios::in | std::ios::binary);
-    file.open(basePath + metadata.info.files.at(fileIndex).path, std::ios::out | std::ios::binary | std::ios::app);
+    for(int i = fileIndex; i < metadata.info.files.size(); i++) {
+        auto currentFile = metadata.info.files.at(i);
 
-    if(!piece.is_open()) {
-        std::cout << "Couldn't open piece" << std::endl;
-        return;
+        if (toWrite == 0) {
+            break;
+        }
+
+        std::fstream file;
+        std::string filepath = basePath + currentFile.path;
+
+        file.open(filepath, std::ios::out | std::ios::binary | std::ios::app);
+
+        if(!file.is_open()) {
+            std::cout << "Couldn't open file" << std::endl;
+            throw std::runtime_error(std::format("Failed to open file: {}", filepath));
+        }
+
+        file.seekp(cursor);
+
+        int canWrite = std::min(toWrite, currentFile.length - cursor);
+
+        file.write(reinterpret_cast<const char *>(piece.data() + pieceOffset), canWrite);
+
+        toWrite -= canWrite;
+        pieceOffset += canWrite;
+        cursor = 0;
+
+        file.close();
     }
-
-    if(!file.is_open()) {
-        std::cout << "Couldn't open piece" << std::endl;
-        return;
-    }
-
-    file.seekp(cursor);
-
-    piece.seekg(0, std::ios::end);
-    size_t toCopy = piece.tellg();
-    piece.seekg(0, std::ios::beg);
-
-    while (toCopy) {
-        char buffer[0x400];
-
-        size_t blockSize = sizeof(buffer) < toCopy ? sizeof(buffer) : toCopy;
-
-        piece.read(buffer, blockSize);
-        file.write(buffer, blockSize);
-
-        toCopy -= blockSize;
-    }
-
-    file.close();
-    piece.close();
 
     std::cout << "Wrote piece " << pieceIndex << std::endl;
-
-    unlink(piecePath.c_str());
 }
 
 size_t PieceManager::getPieceSize() const {
@@ -80,6 +78,33 @@ size_t PieceManager::getTotalPieces() const {
     return totalPieces;
 }
 
+size_t PieceManager::getTotalSize() const {
+    return totalSize;
+}
+
 const std::string &PieceManager::getBasePath() const {
     return basePath;
+}
+
+std::vector<PieceData> PieceManager::generatePieces() {
+    std::vector<PieceData> data;
+
+    auto size = totalSize;
+
+    for(int i = 0; i < totalPieces; i++) {
+        std::stringstream ss;
+        for(int j = 0; j < 20; j++) {
+            ss << std::hex << std::setfill('0') << std::setw(2) << +(uint8_t)metadata.info.pieces[i][j] << std::dec;
+        }
+
+        PieceData piece;
+        piece.length = std::min(metadata.info.piece_length, size);
+        piece.index = i;
+        piece.hash = ss.str();
+
+        size -= std::min(metadata.info.piece_length, size);
+        data.push_back(piece);
+    }
+
+    return data;
 }

@@ -95,7 +95,7 @@ std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize) {
     if(!packetSize) {
         ssize_t code = recv(sockfd, &packetSize, sizeof(packetSize), MSG_WAITALL);
 
-        if (code == 0) {
+        if (code <= 0) {
             throw std::runtime_error("Nothing received on socket");
         }
 

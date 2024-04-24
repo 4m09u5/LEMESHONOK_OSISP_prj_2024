@@ -39,4 +39,6 @@ add_executable(BitTorrent main.cpp
         network/udp.h
         torrent/UDPPeerManager.cpp
         torrent/UDPPeerManager.h
+        torrent/PieceData.cpp
+        torrent/PieceData.h
 )
