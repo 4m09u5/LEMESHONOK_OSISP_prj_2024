@@ -8,6 +8,7 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 #include "../bencode/TorrentFile.h"
 #include "PieceData.h"
 
@@ -16,6 +17,7 @@ class PieceManager {
     std::string basePath;
     size_t totalSize;
     size_t totalPieces;
+    std::mutex lock;
 
 public:
     PieceManager(TorrentFile& metadata, const std::string &basePath);

@@ -16,7 +16,7 @@ class PeerManager {
 
     std::vector<uint8_t> currentPiece;
     SharedQueue<size_t> *pieces;
-    PieceManager pieceManager;
+    PieceManager *pieceManager;
     std::vector<bool> bitField;
     TorrentFile metadata;
     char peerId[20]{};
@@ -25,7 +25,7 @@ class PeerManager {
 
     void handleMessage(Message message);
 public:
-    PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces, PieceManager &pieceManager, TorrentFile metadata, char *clientId);
+    PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces, PieceManager *pieceManager, TorrentFile metadata, char *clientId);
 
     void download();
     bool downloadPiece(PieceData data);

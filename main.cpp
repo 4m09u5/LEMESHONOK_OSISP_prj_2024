@@ -57,7 +57,7 @@ public:
 
                     std::cout << "Connected to " << peer.getAddr() << ":" << peer.getPort() << std::endl;
 
-                    PeerManager peerManager(connection, nullptr, pieceManager, metadata, "                    ");
+                    PeerManager peerManager(connection, nullptr, &pieceManager, metadata, "                    ");
 
                     if(!peerManager.performHandshake())
                         continue;

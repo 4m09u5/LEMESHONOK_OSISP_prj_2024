@@ -53,13 +53,13 @@ void PeerManager::handlePiece(const std::vector<uint8_t> &piece) {
 }
 
 PeerManager::PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces,
-                         PieceManager& pieceManager, TorrentFile metadata, char *clientId) :
-                         connection(connection), pieceManager(pieceManager), metadata(metadata) {
-
+                         PieceManager *pieceManager, TorrentFile metadata, char *clientId) :
+                         connection(connection), metadata(metadata) {
+    this->pieceManager = pieceManager;
     this->pieces = pieces;
     memcpy(this->clientId, clientId, 20);
 
-    bitField.resize(pieceManager.getTotalPieces());
+    bitField.resize(pieceManager->getTotalPieces());
     choked = true;
 }
 
@@ -113,7 +113,7 @@ bool PeerManager::downloadPiece(PieceData data) {
         return false;
     }
 
-    pieceManager.writePiece(data.index, currentPiece);
+    pieceManager->writePiece(data.index, currentPiece);
 
     return true;
 }

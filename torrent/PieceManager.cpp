@@ -22,6 +22,7 @@ PieceManager::PieceManager(TorrentFile& metadata, const std::string &basePath) :
 }
 
 void PieceManager::writePiece(size_t pieceIndex, std::vector<uint8_t> &piece) {
+    std::lock_guard guard(lock);
     ssize_t cursor = pieceIndex * metadata.info.piece_length;
 
     int fileIndex = 0;
