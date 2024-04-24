@@ -26,7 +26,7 @@ bool TCP::connect() {
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = MSG_NOSIGNAL;
+    hints.ai_flags = 0;
     hints.ai_protocol = 0;
 
     s = getaddrinfo(ip.c_str(), port.c_str(), &hints, &result);
@@ -67,7 +67,7 @@ void TCP::sendData(std::vector<uint8_t> data) {
     if (!connected)
         return;
 
-    send(sockfd, data.data(), data.size(), 0);
+    send(sockfd, data.data(), data.size(), MSG_NOSIGNAL);
 }
 
 void TCP::disconnect() {
