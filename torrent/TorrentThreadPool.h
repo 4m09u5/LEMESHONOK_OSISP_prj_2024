@@ -21,7 +21,6 @@ class TorrentThreadPool {
     bool working = true;
     std::deque<PieceData> tasks;
     std::mutex tasksMutex;
-    std::vector<PieceData> pending;    //TODO pending
     std::vector<PieceData> done;
     std::mutex doneMutex;
     std::queue<Peer> peers;
@@ -36,6 +35,7 @@ public:
     void addPeer(Peer peer);
     size_t getDoneCount();
     void updatePeers(const TorrentFile &metadata);
+    bool isWorking();
 
     std::vector<PeerInfo> getInfo();
 };

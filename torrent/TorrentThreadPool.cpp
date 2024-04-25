@@ -70,6 +70,10 @@ TorrentThreadPool::TorrentThreadPool(int workerCount, TorrentFile metadata, Piec
                     } else {
                         std::lock_guard guard(doneMutex);
                         done.push_back(task);
+
+                        if (done.size() == pieceManager.getTotalPieces()) {
+                            working = false;
+                        }
                     }
                 }
             }
@@ -101,7 +105,6 @@ void TorrentThreadPool::updatePeers(const TorrentFile &metadata) {
     UDPPeerManager pm(metadata.announce.hostname, metadata.announce.port);
 
     std::vector<Peer> peers;
-    std::cout << "Trying to connect" << std::endl;
 
     try {
         pm.connect();
@@ -112,7 +115,6 @@ void TorrentThreadPool::updatePeers(const TorrentFile &metadata) {
         }
     }
     catch (std::exception &e) {
-        std::cout << "Failed to connect" << std::endl;
         ;//TODO
     }
 }
@@ -131,4 +133,8 @@ std::vector<PeerInfo> TorrentThreadPool::getInfo() {
     }
 
     return result;
+}
+
+bool TorrentThreadPool::isWorking() {
+    return working;
 }
