@@ -63,11 +63,11 @@ bool TCP::connect() {
     return true;
 }
 
-void TCP::sendData(std::vector<uint8_t> data) {
+size_t TCP::sendData(std::vector<uint8_t> data) {
     if (!connected)
-        return;
+        return 0;
 
-    send(sockfd, data.data(), data.size(), MSG_NOSIGNAL);
+    return send(sockfd, data.data(), data.size(), MSG_NOSIGNAL);
 }
 
 void TCP::disconnect() {

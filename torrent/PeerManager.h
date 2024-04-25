@@ -10,6 +10,7 @@
 #include "PieceManager.h"
 #include "../utils/SharedQueue.h"
 #include "../bencode/TorrentFile.h"
+#include "Peer.h"
 
 class PeerManager {
     PeerConnection connection;
@@ -33,20 +34,18 @@ public:
     void handlePiece(const std::vector<uint8_t> &vector);
 
     void idle();
-
     void applyAllowedFast(const std::vector<uint8_t> &payload);
-
     void handlePort(const std::vector<uint8_t> &vector);
 
     void handleHaveAll();
-
     void handleHaveNone();
-
     void handleHave(const std::vector<uint8_t> &vector);
-
     void downloadBlock(size_t index, size_t offset, size_t length);
-
     bool performHandshake();
+
+    Peer getPeer();
+    size_t getDownloaded();
+    size_t getUploaded();
 };
 
 

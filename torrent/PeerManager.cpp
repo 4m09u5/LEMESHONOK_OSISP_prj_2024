@@ -24,7 +24,6 @@ void PeerManager::handleMessage(Message message) {
         case BITFIELD: applyBitfield(message.getPayload()); break;
         case PIECE: handlePiece(message.getPayload()); break;
         case ALLOWED_FAST: applyAllowedFast(message.getPayload()); break;
-        case PORT: handlePort(message.getPayload()); break;
         case HAVE_ALL: handleHaveAll(); break;
         case REJECT_REQUEST: throw RequestRejectedException();
         case HAVE_NONE: handleHaveNone(); break;
@@ -131,10 +130,6 @@ void PeerManager::idle() {
     }
 }
 
-void PeerManager::handlePort(const std::vector<uint8_t> &vector) {
-    connection.changePort((vector.at(0) << 8) + vector.at(1));
-}
-
 void PeerManager::handleHaveAll() {
     for(size_t i = 0; i < bitField.size(); i++) {
         bitField.at(i) = true;
@@ -147,4 +142,16 @@ void PeerManager::handleHaveNone() {
 
 void PeerManager::handleHave(const std::vector<uint8_t> &vector) {
     bitField.at((vector.at(0) << 24) + (vector.at(1) << 16) + (vector.at(2) << 8) + vector.at(3)) = true;
+}
+
+Peer PeerManager::getPeer() {
+    return connection.getPeer();
+};
+
+size_t PeerManager::getDownloaded() {
+    return connection.getDownloaded();
+}
+
+size_t PeerManager::getUploaded() {
+    return connection.getUploaded();
 }

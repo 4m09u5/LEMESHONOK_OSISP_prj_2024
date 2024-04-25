@@ -36,5 +36,7 @@ struct TorrentFile {
     std::vector<Announce> announceList{};
 };
 
+std::string sizeToString(size_t size);
+void printInfo(TorrentFile &metadata);
 
 #endif //BITTORRENT_TORRENTFILE_H

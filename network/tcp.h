@@ -20,7 +20,7 @@ public:
     bool connect();
     void disconnect();
 
-    void sendData(std::vector<uint8_t> data);
+    size_t sendData(std::vector<uint8_t> data);
 
     std::vector<uint8_t> receivePacket(uint32_t buffersize = 0);
 };

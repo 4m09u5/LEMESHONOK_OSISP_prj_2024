@@ -10,16 +10,16 @@
 #include <iostream>
 #include "tcp.h"
 #include "message.h"
+#include "../torrent/Peer.h"
 
 class PeerConnection {
-    std::string ip;
-    std::string port;
+    Peer peer;
     TCP connection;
+
+    size_t downloaded;
+    size_t uploaded;
 public:
-    PeerConnection(const std::string& ip, const std::string& port) : connection(ip, port) {
-        this->ip = ip;
-        this->port = port;
-    }
+    explicit PeerConnection(const Peer& peer) : connection(peer.getAddr(), peer.getPort()), peer(peer) {}
 
     ~PeerConnection() {
         connection.disconnect();
@@ -27,12 +27,6 @@ public:
 
     bool connect() {
         return connection.connect();
-    }
-
-    void changePort(uint16_t port) {
-        this->port = port;
-        connection.disconnect();
-        connection.connect();
     }
 
     void sendHandshake(std::string infoHash) {
@@ -63,44 +57,44 @@ public:
         for (char c : std::string("-qB4630-k8hj0wgej6ch"))
             message.push_back(c);
 
-        connection.sendData(message);
+        uploaded += connection.sendData(message);
     }
 
     void sendKeepAlive() {
         Message keepAlive;
-        connection.sendData(keepAlive.getVector());
+        uploaded += connection.sendData(keepAlive.getVector());
     }
 
     void sendChoke() {
         Message choke(0);
-        connection.sendData(choke.getVector());
+        uploaded += connection.sendData(choke.getVector());
     }
 
     void sendUnchoke() {
         Message unchoke(1);
-        connection.sendData(unchoke.getVector());
+        uploaded += connection.sendData(unchoke.getVector());
     }
 
     void sendInterested() {
         Message interested(2);
-        connection.sendData(interested.getVector());
+        uploaded += connection.sendData(interested.getVector());
     }
 
     void sendNotInterested() {
         Message notInterested(3);
-        connection.sendData(notInterested.getVector());
+        uploaded += connection.sendData(notInterested.getVector());
     }
 
     void sendHave(uint32_t pieceIndex) {
         Message have(4);
         have.addPayload(pieceIndex);
-        connection.sendData(have.getVector());
+        uploaded += connection.sendData(have.getVector());
     }
 
     void sendBitfield(const std::vector<bool>& pieces) {
         Message bitfield(5);
         bitfield.addPayload(pieces);
-        connection.sendData(bitfield.getVector());
+        uploaded += connection.sendData(bitfield.getVector());
     }
 
     void sendRequest(uint32_t index, uint32_t begin, uint32_t length) {
@@ -108,18 +102,19 @@ public:
         request.addPayload(index);
         request.addPayload(begin);
         request.addPayload(length);
-        connection.sendData(request.getVector());
+        uploaded += connection.sendData(request.getVector());
     }
 
     Message receiveHandshake() {
         Message result;
         std::vector<uint8_t> packet = connection.receivePacket(0);
+        downloaded += packet.size();
         if (packet.size() <= 4) {
             result.setPayload({});
             result.setId(0);
             return result;
         }
-       result.setId(packet.at(0));
+        result.setId(packet.at(0));
         result.setPayload(std::vector(packet.begin() + 1, packet.end()));
 
         return result;
@@ -128,6 +123,7 @@ public:
     Message receiveMessage() {
         Message result;
         std::vector<uint8_t> packet = connection.receivePacket();
+        downloaded += packet.size();
 
         if (packet.empty()) {
             // Handle empty packet case
@@ -146,6 +142,18 @@ public:
         result.setPayload(payload);
 
         return result;
+    }
+
+    Peer getPeer() {
+        return peer;
+    };
+
+    size_t getDownloaded() const {
+        return downloaded;
+    }
+
+    size_t getUploaded() const {
+        return uploaded;
     }
 };
 

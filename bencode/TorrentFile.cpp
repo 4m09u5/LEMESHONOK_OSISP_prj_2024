@@ -4,6 +4,7 @@
 
 #include <regex>
 #include <fstream>
+#include <format>
 #include "TorrentFile.h"
 #include "BencodeParser.h"
 #include "../utils/sha1.h"
@@ -62,4 +63,36 @@ TorrentFile::TorrentFile(const std::string& path) {
     for(const auto & it : raw["announce-list"][0].listValue) {
         announceList.emplace_back(parseAnnounce(it.rawValue));
     }
+}
+
+std::string sizeToString(size_t size) {
+    std::vector<std::string> sizes = {"B", "kB", "MB", "GB", "TB"};
+
+    double result = size;
+    int i = 0;
+
+    for (; result >= 1024 && i < sizes.size() - 1; i++)
+        result /= 1024;
+
+    return std::format("{:.2f} {}", result, sizes.at(i));
+}
+
+void printInfo(TorrentFile &metadata) {
+    std::cout << "Label: " << metadata.info.name << std::endl;
+    std::cout << "Files: " << std::endl;
+
+    for (auto file : metadata.info.files) {
+        std::cout << std::format("\t{} ({})\n", file.path, sizeToString(file.length));
+    }
+
+    std::cout << std::endl;
+    std::cout << "Announce list: " << std::endl;
+
+    for (auto announce : metadata.announceList) {
+        std::cout << std::format("\t{}://{}:{}{}\n", announce.protocol, announce.hostname, announce.port, announce.query);
+    }
+
+    std::cout << std::endl;
+    std::cout << std::format("Piece length: {} ({})\n", metadata.info.piece_length, sizeToString(metadata.info.piece_length));
+    std::cout << "Info hash: " << metadata.infoHash << std::endl;
 }

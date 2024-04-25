@@ -3,10 +3,8 @@
 //
 
 #include <fstream>
-#include <csignal>
 #include <cmath>
 #include <iostream>
-#include <cstdint>
 #include <format>
 #include <iomanip>
 #include "PieceManager.h"
@@ -51,7 +49,10 @@ void PieceManager::writePiece(size_t pieceIndex, std::vector<uint8_t> &piece) {
 
         if(!file.is_open()) {
             std::cout << "Couldn't open file" << std::endl;
-            throw std::runtime_error(std::format("Failed to open file: {}", filepath));
+            file.open(filepath, std::ios::binary | std::ios::out);
+
+            if(!file.is_open())
+                throw std::runtime_error(std::format("Failed to open file: {}", filepath));
         }
 
         file.seekp(cursor, std::ios_base::beg);
