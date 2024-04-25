@@ -6,16 +6,21 @@
 #include <format>
 
 int main(int argc, char **argv) {
-    if (argc < 2) {
-        std::cout << "Use BitTorrent --help" << std::endl;
+    if (argc < 2 || argc > 4) {
+        std::cout << std::format("Use {} help", argv[0]) << std::endl;
         return 0;
     }
 
     if (argc == 2) {
         if (std::string(argv[1]) == "help") {
-            std::cout << "Todo help" << std::endl;
+            std::cout << "BitTorrent [command] [...]" << std::endl;
+            std::cout << "\thelp - prints this message" << std::endl;
+            std::cout << "\tinfo [path to torrent file] - read info from the torrent file" << std::endl;
+            std::cout << "\tdownload [path to torrent file] [download directory] - download files to the provided directory" << std::endl;
+
+            return 0;
         } else {
-            std::cout << "Use BitTorrent --help" << std::endl;
+            std::cout << std::format("Use {} help", argv[0]) << std::endl;
             return 0;
         }
     }
@@ -26,7 +31,7 @@ int main(int argc, char **argv) {
             printInfo(metadata);
             return 0;
         } else {
-            std::cout << "Use BitTorrent --help" << std::endl;
+            std::cout << std::format("Use {} help", argv[0]) << std::endl;
             return 0;
         }
     }
@@ -110,5 +115,10 @@ int main(int argc, char **argv) {
         }
 
         sleep(1);
+
+        if (!threadPool.isWorking()) {
+            std::cout << "Download completed." << std::endl;
+            break;
+        }
     }
 }
