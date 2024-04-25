@@ -27,4 +27,4 @@
 
 Интерфейс пользователя в процессе загрузки.
 
-[Пример загрузки](https://raw.githubusercontent.com/4m09u5/LEMESHONOK_OSISP_prj_2024/74dd4c3/download_example.png)
+![Пример загрузки](https://raw.githubusercontent.com/4m09u5/LEMESHONOK_OSISP_prj_2024/74dd4c3/download_example.png)
