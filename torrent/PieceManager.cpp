@@ -45,17 +45,16 @@ void PieceManager::writePiece(size_t pieceIndex, std::vector<uint8_t> &piece) {
             break;
         }
 
-        std::fstream file;
-        std::string filepath = basePath + currentFile.path;
 
-        file.open(filepath, std::ios::out | std::ios::binary | std::ios::app);
+        std::string filepath = basePath + currentFile.path;
+        std::ofstream file(filepath, std::ios::binary | std::ios::in | std::ios::out);
 
         if(!file.is_open()) {
             std::cout << "Couldn't open file" << std::endl;
             throw std::runtime_error(std::format("Failed to open file: {}", filepath));
         }
 
-        file.seekp(cursor);
+        file.seekp(cursor, std::ios_base::beg);
 
         int canWrite = std::min(toWrite, currentFile.length - cursor);
 

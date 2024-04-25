@@ -109,6 +109,11 @@ public:
         std::lock_guard guard(mutex);
         peers.push(peer);
     }
+
+    size_t getDoneCount() {
+        std::lock_guard guard(mutex);
+        return done.size();
+    }
 };
 
 std::string sizeToString(size_t size) {
@@ -213,7 +218,7 @@ int main(int argc, char **argv) {
         files.push_back(el.path);
     }
 
-    PieceManager pieceManager(metadata, "/home/dzmitry/Desktop/download/");
+    PieceManager pieceManager(metadata, "/home/dzmitry/Desktop/bibubi/");
 
     ThreadPool threadPool(8, metadata, pieceManager);
 
@@ -225,12 +230,13 @@ int main(int argc, char **argv) {
 
     auto pieces = pieceManager.generatePieces();
 
-    for (auto piece : pieces) {
-        threadPool.download(piece);
+    for(int i = 0; i < 20; i++) {
+        threadPool.download(pieces.at(i));
     }
 
     std::cout << "Im sleeping" << std::endl;
     while (true) {
-        sleep(100000);
+        sleep(1);
+        std::cout << std::format("{} / {}\n", threadPool.getDoneCount(), pieces.size());
     }
 }
