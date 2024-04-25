@@ -105,12 +105,8 @@ bool PeerManager::downloadPiece(PieceData data) {
 
     auto actualHash = hash.final();
 
-    if (data.hash != actualHash) {
-        std::cout << "Hashes didn't match for piece " << data.index << "!" << std::endl;
-        std::cout << "Desired: " << data.hash << std::endl;
-        std::cout << "Actual:  " << actualHash << std::endl;
+    if (data.hash != actualHash)
         return false;
-    }
 
     pieceManager->writePiece(data.index, currentPiece);
 

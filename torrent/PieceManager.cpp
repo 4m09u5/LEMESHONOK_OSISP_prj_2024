@@ -43,12 +43,10 @@ void PieceManager::writePiece(size_t pieceIndex, std::vector<uint8_t> &piece) {
             break;
         }
 
-
         std::string filepath = basePath + currentFile.path;
         std::ofstream file(filepath, std::ios::binary | std::ios::in | std::ios::out);
 
         if(!file.is_open()) {
-            std::cout << "Couldn't open file" << std::endl;
             file.open(filepath, std::ios::binary | std::ios::out);
 
             if(!file.is_open())
@@ -67,8 +65,6 @@ void PieceManager::writePiece(size_t pieceIndex, std::vector<uint8_t> &piece) {
 
         file.close();
     }
-
-    std::cout << "Wrote piece " << pieceIndex << std::endl;
 }
 
 size_t PieceManager::getPieceSize() const {
