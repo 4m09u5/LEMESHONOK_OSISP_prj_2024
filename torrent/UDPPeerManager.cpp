@@ -43,7 +43,7 @@ std::vector<Peer> UDPPeerManager::getPeers(std::string hash) {
 
     std::vector<Peer> peers;
 
-    for(auto it = data.begin() + 20; it != data.end(); it+=6) {
+    for(auto it = response.begin() + 20; it != response.end(); it+=6) {
         std::stringstream host, port;
         host << +static_cast<unsigned char>(*it) << "." << +static_cast<unsigned char>(*(it + 1)) << "." <<
              +static_cast<unsigned char>(*(it + 2)) << "." << +static_cast<unsigned char>(*(it + 3));
