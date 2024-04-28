@@ -19,5 +19,4 @@ public:
     std::vector<Peer> getPeers(std::string hash);
 };
 
-
 #endif //BITTORRENT_UDPPEERMANAGER_H

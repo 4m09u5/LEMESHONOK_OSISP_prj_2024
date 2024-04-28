@@ -29,7 +29,7 @@ class TorrentThreadPool {
     std::mutex connectedMutex;
     std::vector<std::thread> threads;
 public:
-    TorrentThreadPool(int workerCount, TorrentFile metadata, PieceManager& pieceManager);
+    TorrentThreadPool(int workerCount, TorrentFile metadata, PieceManager& pieceManager, std::vector<PieceData> missing, std::vector<PieceData> present);
     ~TorrentThreadPool();
     void download(PieceData piece);
     void addPeer(Peer peer);
@@ -38,6 +38,8 @@ public:
     bool isWorking();
 
     std::vector<PeerInfo> getInfo();
+
+    void addDone(PieceData piece);
 };
 
 

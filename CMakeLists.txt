@@ -45,4 +45,6 @@ add_executable(BitTorrent main.cpp
         torrent/TorrentThreadPool.h
         torrent/PeerInfo.cpp
         torrent/PeerInfo.h
+        torrent/HTTPTracker.cpp
+        torrent/HTTPTracker.h
 )

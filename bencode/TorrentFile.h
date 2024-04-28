@@ -28,7 +28,7 @@ struct Info {
 };
 
 struct TorrentFile {
-    TorrentFile(const std::string &path);
+    TorrentFile(const std::string path);
 
     Info info{};
     std::string infoHash{};

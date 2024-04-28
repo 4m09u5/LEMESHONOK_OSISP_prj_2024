@@ -18,7 +18,6 @@ class PieceManager {
     size_t totalSize;
     size_t totalPieces;
     std::mutex lock;
-
 public:
     PieceManager(TorrentFile& metadata, const std::string &basePath);
 
@@ -33,6 +32,10 @@ public:
     std::vector<PieceData> generatePieces();
 
     size_t getTotalSize() const;
+
+    std::vector<uint8_t> getPiece(PieceData piece);
+
+    std::pair<std::vector<PieceData>, std::vector<PieceData>> getPieceData();
 };
 
 

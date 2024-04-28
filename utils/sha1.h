@@ -258,9 +258,7 @@ inline void SHA1::update(const std::string &s)
 inline void SHA1::update(const std::vector<uint8_t> &v)
 {
     std::stringstream is;
-    for(auto byte : v) {
-        is << byte;
-    }
+    is.write(reinterpret_cast<const char*>(v.data()), v.size());
     update(is);
 }
 

@@ -93,7 +93,10 @@ std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize) {
     std::vector<uint8_t> result(packetSize);
 
     if(!packetSize) {
-        ssize_t code = recv(sockfd, &packetSize, sizeof(packetSize), MSG_WAITALL);
+        ssize_t code = 0;
+        for (int i = 0; i < 5 && code <= 0; i++) {
+            code = recv(sockfd, &packetSize, sizeof(packetSize), 0);
+        }
 
         if (code <= 0) {
             throw std::runtime_error("Nothing received on socket");
@@ -104,6 +107,10 @@ std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize) {
         }
 
         packetSize = __builtin_bswap32(packetSize);
+
+        if (packetSize > 100000) {
+            return {};
+        }
 
         result.resize(packetSize);
     }

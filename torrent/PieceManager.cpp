@@ -8,6 +8,7 @@
 #include <format>
 #include <iomanip>
 #include "PieceManager.h"
+#include "../utils/sha1.h"
 
 PieceManager::PieceManager(TorrentFile& metadata, const std::string &basePath) : metadata(metadata) {
     this->basePath = basePath;
@@ -104,4 +105,73 @@ std::vector<PieceData> PieceManager::generatePieces() {
     }
 
     return data;
+}
+
+std::vector<uint8_t> PieceManager::getPiece(PieceData piece) {
+    std::lock_guard guard(lock);
+
+    std::vector<uint8_t> data(piece.length);
+
+    size_t cursor = piece.index * metadata.info.piece_length;
+    size_t toRead = piece.length;
+    size_t pieceOffset = 0;
+
+    for (const auto &current : metadata.info.files) {
+        if (cursor >= (size_t)current.length) {
+            cursor -= current.length;
+        } else {
+            std::string filepath = basePath + current.path;
+            std::ifstream file(filepath, std::ios::binary | std::ios::in);
+
+            if(!file.is_open()) {
+                return {};
+            }
+
+            file.seekg(cursor, std::ios_base::beg);
+
+            size_t canRead = std::min(toRead, (size_t)(current.length - cursor));
+
+            file.read(reinterpret_cast<char *>(data.data() + pieceOffset), canRead);
+
+            toRead -= canRead;
+            pieceOffset += canRead;
+            cursor = 0;
+
+            file.close();
+
+            if (toRead == 0) {
+                break;
+            }
+        }
+    }
+
+    return data;
+}
+
+std::pair<std::vector<PieceData>, std::vector<PieceData>> PieceManager::getPieceData() {
+    std::vector<PieceData> missing;
+    std::vector<PieceData> present;
+
+    std::vector<PieceData> all = generatePieces();
+
+    for (const auto &piece : all) {
+
+        auto data = getPiece(piece);
+
+        if (data.empty()) {
+            missing.push_back(piece);
+            continue;
+        }
+
+        SHA1 hash;
+        hash.update(data);
+
+         if (piece.hash != hash.final()) {
+            missing.push_back(piece);
+        } else {
+            present.push_back(piece);
+        }
+    }
+
+    return {missing, present};
 }

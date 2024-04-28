@@ -5,8 +5,19 @@
 #include <format>
 #include "TorrentThreadPool.h"
 #include "UDPPeerManager.h"
+#include "../network/http.h"
+#include "../bencode/BencodeParser.h"
+#include "HTTPTracker.h"
 
-TorrentThreadPool::TorrentThreadPool(int workerCount, TorrentFile metadata, PieceManager& pieceManager) {
+TorrentThreadPool::TorrentThreadPool(int workerCount, TorrentFile metadata, PieceManager& pieceManager, std::vector<PieceData> missing, std::vector<PieceData> present) {
+    for (auto &piece : missing) {
+        tasks.push_back(piece);
+    }
+
+    for (auto &piece : present) {
+        done.push_back(piece);
+    }
+
     for (int i = 0; i < workerCount; ++i) {
         threads.emplace_back([this, &pieceManager, metadata](){
             while(working) {
@@ -96,14 +107,29 @@ void TorrentThreadPool::addPeer(Peer peer) {
     peers.push(peer);
 }
 
+void TorrentThreadPool::addDone(PieceData piece) {
+    std::lock_guard guard(peersMutex);
+    done.push_back(piece);
+}
+
 size_t TorrentThreadPool::getDoneCount() {
     std::lock_guard guard(doneMutex);
     return done.size();
 }
 
 void TorrentThreadPool::updatePeers(const TorrentFile &metadata) {
-    UDPPeerManager pm(metadata.announce.hostname, metadata.announce.port);
+    if (metadata.announce.protocol == std::string("http")) {
+        HTTPTracker tracker;
 
+        auto peers = tracker.getPeers(metadata);
+
+        for (auto peer : peers) {
+            this->peers.push(peer);
+        }
+        return;
+    }
+
+    UDPPeerManager pm(metadata.announce.hostname, metadata.announce.port);
     std::vector<Peer> peers;
 
     try {

@@ -68,8 +68,10 @@ bool PeerManager::performHandshake() {
         connection.receiveMessage();
         idle();
 
-        connection.sendInterested();
-        idle();
+        while (choked) {
+            connection.sendInterested();
+            idle();
+        }
         return true;
     }
     catch (...) {

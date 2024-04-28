@@ -24,7 +24,7 @@ Announce parseAnnounce(std::string raw) {
 }
 
 
-TorrentFile::TorrentFile(const std::string& path) {
+TorrentFile::TorrentFile(const std::string path) {
     std::ifstream file(path, std::ios::binary);
     std::stringstream ss;
 
@@ -46,22 +46,38 @@ TorrentFile::TorrentFile(const std::string& path) {
 
     announce = parseAnnounce(raw["announce"].rawValue);
 
-    const auto& pieces = raw["info"]["pieces"].rawValue;
-    for(int i = 0; i < pieces.size(); i += 20)
+    const auto &pieces = raw["info"]["pieces"].rawValue;
+    for (int i = 0; i < pieces.size(); i += 20)
         info.pieces.emplace_back(pieces.substr(i, 20));
 
-    const auto& files = raw["info"]["files"].listValue;
-    for (auto file: files) {
-        std::string path;
 
-        for (auto el : file["path"].listValue)
-            path += "/" + std::string(el.rawValue);
+    std::vector<BencodeValue> files;
 
-        info.files.push_back({path, std::stoul(file["length"].rawValue)});
+    try {
+        files = raw["info"]["files"].listValue;
+
+        for (auto file: files) {
+            std::string path;
+
+            for (auto el : file["path"].listValue)
+                path += "/" + std::string(el.rawValue);
+
+            info.files.push_back({path, std::stoul(file["length"].rawValue)});
+        }
+    }
+    catch (...) {
+        info.files.emplace_back(raw["info"]["name"].rawValue, std::stoul(raw["info"]["length"].rawValue));
     }
 
-    for(const auto & it : raw["announce-list"][0].listValue) {
-        announceList.emplace_back(parseAnnounce(it.rawValue));
+
+
+    try {
+        for (const auto &it: raw["announce-list"][0].listValue) {
+            announceList.emplace_back(parseAnnounce(it.rawValue));
+        }
+    }
+    catch (...) {
+        ;
     }
 }
 
@@ -86,6 +102,10 @@ void printInfo(TorrentFile &metadata) {
     }
 
     std::cout << std::endl;
+
+    std::cout << "Announce: " << std::endl;
+    std::cout << std::format("\t{}://{}:{}{}\n", metadata.announce.protocol, metadata.announce.hostname, metadata.announce.port, metadata.announce.query);
+
     std::cout << "Announce list: " << std::endl;
 
     for (auto announce : metadata.announceList) {

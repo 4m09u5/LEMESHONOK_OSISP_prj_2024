@@ -46,57 +46,11 @@ int main(int argc, char **argv) {
     }
 
     TorrentFile metadata(argv[2]);
-
-/*
-    std::string hash = URLEncode(metadata.infoHash);
-
-    HTTP request(metadata.announce.hostname, metadata.announce.port, metadata.announce.query);
-    request.addParameter("info_hash", hash);
-    request.addParameter("peer_id", "%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10");
-    request.addParameter("port", "44953");
-    request.addParameter("uploaded", "0");
-    request.addParameter("downloaded", "0");
-    request.addParameter("left", "0");
-
-    BencodeParser parser;
-    auto response = request.execute();
-    std::cout << response.getData();
-
-
-    auto data = parser.parse(response.getData());
-    auto peers = parsePeers(data["peers"].rawValue);*/
-
-    /*try {
-
-    } catch (std::runtime_error &e) {
-        std::cout << "UDP failed: " << e.what() << std::endl;
-
-        HTTP request(metadata.announce.hostname, metadata.announce.port, metadata.announce.query);
-        request.addParameter("info_hash", hash);
-        request.addParameter("peer_id", "%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10%10");
-        request.addParameter("port", "44953");
-        request.addParameter("uploaded", "0");
-        request.addParameter("downloaded", "0");
-        request.addParameter("left", "0");
-
-        BencodeParser parser;
-        auto response = request.execute();
-        std::cout << response.getData();
-
-
-        auto data = parser.parse(response.getData());
-        peers = parsePeers(data["peers"].rawValue);
-    }*/
-
     PieceManager pieceManager(metadata, argv[3]);
+    std::cout << "Scanning directory..." << std::endl;
+    auto [missing, present] = pieceManager.getPieceData();
 
-    TorrentThreadPool threadPool(30, metadata, pieceManager);
-
-    auto pieces = pieceManager.generatePieces();
-
-    for (auto &piece : pieces) {
-        threadPool.download(piece);
-    }
+    TorrentThreadPool threadPool(8, metadata, pieceManager, missing, present);
 
     while (true) {
         auto statistics = threadPool.getInfo();
@@ -117,6 +71,7 @@ int main(int argc, char **argv) {
         sleep(1);
 
         if (!threadPool.isWorking()) {
+            system("clear");
             std::cout << "Download completed." << std::endl;
             break;
         }
