@@ -3,11 +3,14 @@
 //
 
 #include "HTTPTracker.h"
-#include "../network/http.h"
-#include "../bencode/TorrentFile.h"
-#include "../bencode/BencodeParser.h"
+#include "../../../network/http.h"
+#include "../../../bencode/TorrentFile.h"
+#include "../../../bencode/BencodeParser.h"
 
-std::vector<Peer> HTTPTracker::getPeers(TorrentFile metadata) {
+HTTPTracker::HTTPTracker(TorrentFile metadata) : metadata(metadata) {}
+
+
+std::vector<Peer> HTTPTracker::getPeers() {
     std::string encodedHash = URLEncode(metadata.infoHash);
 
     HTTP request(metadata.announce.hostname, metadata.announce.port, metadata.announce.query);
@@ -36,3 +39,15 @@ std::vector<Peer> HTTPTracker::getPeers(TorrentFile metadata) {
 
     return peers;
 }
+
+Peer HTTPTracker::getPeer() {
+    while (peers.empty()) {
+        peers = getPeers();
+    }
+
+    Peer result = peers.back();
+    peers.pop_back();
+
+    return result;
+}
+

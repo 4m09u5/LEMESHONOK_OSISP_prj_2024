@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
 
             return 0;
         } else {
-            std::cout << std::format("Use {} help", argv[0]) << std::endl;
+            std::cout << std::format("responseUse {} help", argv[0]) << std::endl;
             return 0;
         }
     }
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     std::cout << "Scanning directory..." << std::endl;
     auto [missing, present] = pieceManager.getPieceData();
 
-    TorrentThreadPool threadPool(8, metadata, pieceManager, missing, present);
+    TorrentThreadPool threadPool(16, metadata, pieceManager, missing, present);
 
     while (true) {
         auto statistics = threadPool.getInfo();

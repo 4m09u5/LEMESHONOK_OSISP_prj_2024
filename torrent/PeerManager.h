@@ -8,7 +8,6 @@
 
 #include "../network/PeerConnection.h"
 #include "PieceManager.h"
-#include "../utils/SharedQueue.h"
 #include "../bencode/TorrentFile.h"
 #include "Peer.h"
 
@@ -16,7 +15,6 @@ class PeerManager {
     PeerConnection connection;
 
     std::vector<uint8_t> currentPiece;
-    SharedQueue<size_t> *pieces;
     PieceManager *pieceManager;
     std::vector<bool> bitField;
     TorrentFile metadata;
@@ -26,19 +24,16 @@ class PeerManager {
 
     void handleMessage(Message message);
 public:
-    PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces, PieceManager *pieceManager, TorrentFile metadata, char *clientId);
+    PeerManager(PeerConnection &connection, PieceManager *pieceManager, TorrentFile metadata, char *clientId);
 
-    void download();
     bool downloadPiece(PieceData data);
     void applyBitfield(const std::vector<uint8_t> &vector);
     void handlePiece(const std::vector<uint8_t> &vector);
 
     void idle();
     void applyAllowedFast(const std::vector<uint8_t> &payload);
-    void handlePort(const std::vector<uint8_t> &vector);
 
     void handleHaveAll();
-    void handleHaveNone();
     void handleHave(const std::vector<uint8_t> &vector);
     void downloadBlock(size_t index, size_t offset, size_t length);
     bool performHandshake();
@@ -46,6 +41,8 @@ public:
     Peer getPeer();
     size_t getDownloaded();
     size_t getUploaded();
+
+    void handleRequest(const std::vector<uint8_t> &vector);
 };
 
 

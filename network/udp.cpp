@@ -14,7 +14,10 @@
 UDP::UDP(std::string ip, std::string port) {
     this->ip = ip;
     this->port = port;
-    connected = false;
+}
+
+UDP::~UDP() {
+    close(sockfd);
 }
 
 bool UDP::connect() {
@@ -62,20 +65,17 @@ void UDP::sendData(std::vector<uint8_t> data) {
     write(sockfd, data.data(), data.size());
 }
 
-void UDP::disconnect() {
-    close(sockfd);
-}
-
 std::vector<uint8_t> UDP::receivePacket(size_t packetSize) {
     ssize_t total = 0;
     std::vector<uint8_t> result(packetSize);
 
-    total = read(sockfd, result.data(), packetSize);
 
-    if (total <= 0)
-        throw std::runtime_error("Nothing received on socket");
 
+    while (total <= 0) {
+        total = recv(sockfd, result.data(), packetSize, 0);
+    }
     result.resize(total);
 
     return result;
 }
+

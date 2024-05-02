@@ -9,13 +9,6 @@
 #include "PeerManager.h"
 #include "../utils/sha1.h"
 
-class RequestRejectedException : public std::exception {
-public:
-    const char *what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_NOTHROW override {
-        return "Request rejected";
-    }
-};
-
 void PeerManager::handleMessage(Message message) {
     switch(message.getId()) {
         case CHOKE: choked = true; break;
@@ -25,8 +18,8 @@ void PeerManager::handleMessage(Message message) {
         case PIECE: handlePiece(message.getPayload()); break;
         case ALLOWED_FAST: applyAllowedFast(message.getPayload()); break;
         case HAVE_ALL: handleHaveAll(); break;
-        case REJECT_REQUEST: throw RequestRejectedException();
-        case HAVE_NONE: handleHaveNone(); break;
+        case REJECT_REQUEST: throw std::runtime_error("Request rejected");
+        case REQUEST: handleRequest(message.getPayload()); break;
     }
 }
 
@@ -51,11 +44,9 @@ void PeerManager::handlePiece(const std::vector<uint8_t> &piece) {
     std::copy(piece.begin() + 8, piece.end(), currentPiece.begin() + index);
 }
 
-PeerManager::PeerManager(PeerConnection &connection, SharedQueue<size_t> *pieces,
-                         PieceManager *pieceManager, TorrentFile metadata, char *clientId) :
+PeerManager::PeerManager(PeerConnection &connection,PieceManager *pieceManager, TorrentFile metadata, char *clientId) :
                          connection(connection), metadata(metadata) {
     this->pieceManager = pieceManager;
-    this->pieces = pieces;
     memcpy(this->clientId, clientId, 20);
 
     bitField.resize(pieceManager->getTotalPieces());
@@ -134,10 +125,6 @@ void PeerManager::handleHaveAll() {
     }
 }
 
-void PeerManager::handleHaveNone() {
-    ;
-}
-
 void PeerManager::handleHave(const std::vector<uint8_t> &vector) {
     bitField.at((vector.at(0) << 24) + (vector.at(1) << 16) + (vector.at(2) << 8) + vector.at(3)) = true;
 }
@@ -152,4 +139,8 @@ size_t PeerManager::getDownloaded() {
 
 size_t PeerManager::getUploaded() {
     return connection.getUploaded();
+}
+
+void PeerManager::handleRequest(const std::vector<uint8_t> &vector) {
+
 }

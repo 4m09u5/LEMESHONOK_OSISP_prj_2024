@@ -108,7 +108,7 @@ std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize) {
 
         packetSize = __builtin_bswap32(packetSize);
 
-        if (packetSize > 100000) {
+        if (packetSize > 500000) {
             return {};
         }
 
@@ -124,4 +124,8 @@ std::vector<uint8_t> TCP::receivePacket(uint32_t packetSize) {
     }
 
     return result;
+}
+
+TCP::~TCP() {
+    disconnect();
 }

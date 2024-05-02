@@ -4,12 +4,14 @@
 
 #include <format>
 #include "TorrentThreadPool.h"
-#include "UDPPeerManager.h"
+#include "Tracker/UDPTracker/UDPTracker.h"
 #include "../network/http.h"
 #include "../bencode/BencodeParser.h"
-#include "HTTPTracker.h"
+#include "Tracker/HTTPTracker/HTTPTracker.h"
 
 TorrentThreadPool::TorrentThreadPool(int workerCount, TorrentFile metadata, PieceManager& pieceManager, std::vector<PieceData> missing, std::vector<PieceData> present) {
+    applyTracker(metadata);
+
     for (auto &piece : missing) {
         tasks.push_back(piece);
     }
@@ -23,12 +25,8 @@ TorrentThreadPool::TorrentThreadPool(int workerCount, TorrentFile metadata, Piec
             while(working) {
                 Peer peer("", "");
                 {
-                    std::lock_guard guard(peersMutex);
-                    while (peers.empty()) {
-                        updatePeers(metadata);
-                    }
-                    peer = peers.front();
-                    peers.pop();
+                    std::lock_guard guard(trackerMutex);
+                    peer = tracker->getPeer();
                 }
 
                 PeerConnection connection(peer);
@@ -36,7 +34,7 @@ TorrentThreadPool::TorrentThreadPool(int workerCount, TorrentFile metadata, Piec
                 if (!connection.connect())
                     continue;
 
-                PeerManager peerManager(connection, nullptr, &pieceManager, metadata, "                    ");
+                PeerManager peerManager(connection, &pieceManager, metadata, "                    ");
 
                 if(!peerManager.performHandshake())
                     continue;
@@ -97,52 +95,23 @@ TorrentThreadPool::~TorrentThreadPool() {
     for (auto &t : threads) t.join();
 }
 
-void TorrentThreadPool::download(PieceData piece) {
-    std::lock_guard guard(tasksMutex);
-    tasks.push_back(piece);
-}
-
-void TorrentThreadPool::addPeer(Peer peer) {
-    std::lock_guard guard(peersMutex);
-    peers.push(peer);
-}
-
-void TorrentThreadPool::addDone(PieceData piece) {
-    std::lock_guard guard(peersMutex);
-    done.push_back(piece);
-}
-
 size_t TorrentThreadPool::getDoneCount() {
     std::lock_guard guard(doneMutex);
     return done.size();
 }
 
-void TorrentThreadPool::updatePeers(const TorrentFile &metadata) {
+void TorrentThreadPool::applyTracker(const TorrentFile &metadata) {
     if (metadata.announce.protocol == std::string("http")) {
-        HTTPTracker tracker;
-
-        auto peers = tracker.getPeers(metadata);
-
-        for (auto peer : peers) {
-            this->peers.push(peer);
-        }
+        this->tracker = std::make_unique<HTTPTracker>(metadata);
         return;
     }
 
-    UDPPeerManager pm(metadata.announce.hostname, metadata.announce.port);
-    std::vector<Peer> peers;
-
-    try {
-        pm.connect();
-        peers = pm.getPeers(metadata.infoHash);
-
-        for (auto &peer : peers) {
-            this->peers.push(peer);
-        }
+    if (metadata.announce.protocol == std::string("udp")) {
+        this->tracker = std::make_unique<UDPTracker>(metadata);
+        return;
     }
-    catch (std::exception &e) {
-        ;//TODO
-    }
+
+    throw std::runtime_error(std::format("Unsupported tracker protocol: {}", metadata.announce.protocol));
 }
 
 std::vector<PeerInfo> TorrentThreadPool::getInfo() {

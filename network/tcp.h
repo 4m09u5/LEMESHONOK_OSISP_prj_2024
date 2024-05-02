@@ -17,6 +17,7 @@ class TCP {
     std::vector<uint8_t> receiveData();
 public:
     TCP(std::string ip, std::string port);
+    ~TCP();
     bool connect();
     void disconnect();
 

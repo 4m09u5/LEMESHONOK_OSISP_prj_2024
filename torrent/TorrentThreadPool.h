@@ -16,6 +16,7 @@
 #include "../network/PeerConnection.h"
 #include "PeerManager.h"
 #include "PeerInfo.h"
+#include "Tracker/Tracker.h"
 
 class TorrentThreadPool {
     bool working = true;
@@ -23,23 +24,19 @@ class TorrentThreadPool {
     std::mutex tasksMutex;
     std::vector<PieceData> done;
     std::mutex doneMutex;
-    std::queue<Peer> peers;
-    std::mutex peersMutex;
+    std::unique_ptr<Tracker> tracker;
+    std::mutex trackerMutex;
     std::vector<PeerManager*> connectedPeers;
     std::mutex connectedMutex;
     std::vector<std::thread> threads;
 public:
     TorrentThreadPool(int workerCount, TorrentFile metadata, PieceManager& pieceManager, std::vector<PieceData> missing, std::vector<PieceData> present);
     ~TorrentThreadPool();
-    void download(PieceData piece);
-    void addPeer(Peer peer);
     size_t getDoneCount();
-    void updatePeers(const TorrentFile &metadata);
+    void applyTracker(const TorrentFile &metadata);
     bool isWorking();
 
     std::vector<PeerInfo> getInfo();
-
-    void addDone(PieceData piece);
 };
 
 
