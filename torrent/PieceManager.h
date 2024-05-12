@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <deque>
 #include "../bencode/TorrentFile.h"
 #include "PieceData.h"
 
@@ -29,7 +30,7 @@ public:
 
     void writePiece(size_t pieceIndex, std::vector<uint8_t> &piece);
 
-    std::vector<PieceData> generatePieces();
+    std::deque<PieceData> generatePieces();
 
     size_t getTotalSize() const;
 

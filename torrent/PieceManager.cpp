@@ -7,6 +7,7 @@
 #include <iostream>
 #include <format>
 #include <iomanip>
+#include <thread>
 #include "PieceManager.h"
 #include "../utils/sha1.h"
 
@@ -84,8 +85,8 @@ const std::string &PieceManager::getBasePath() const {
     return basePath;
 }
 
-std::vector<PieceData> PieceManager::generatePieces() {
-    std::vector<PieceData> data;
+std::deque<PieceData> PieceManager::generatePieces() {
+    std::deque<PieceData> data;
 
     auto size = totalSize;
 
@@ -151,26 +152,50 @@ std::vector<uint8_t> PieceManager::getPiece(PieceData piece) {
 std::pair<std::vector<PieceData>, std::vector<PieceData>> PieceManager::getPieceData() {
     std::vector<PieceData> missing;
     std::vector<PieceData> present;
+    std::mutex lock;
 
-    std::vector<PieceData> all = generatePieces();
+    std::deque<PieceData> all = generatePieces();
 
-    for (const auto &piece : all) {
+    bool working = true;
 
-        auto data = getPiece(piece);
+    std::vector<std::thread> threads;
 
-        if (data.empty()) {
-            missing.push_back(piece);
-            continue;
-        }
+    for (int i = 0; i < 16; i++) {
+        threads.emplace_back([&]{
+            while (working) {
+                PieceData piece;
 
-        SHA1 hash;
-        hash.update(data);
+                {
+                    std::lock_guard guard(lock);
+                    if (all.empty()) {
+                        working = false;
+                        break;
+                    }
+                    piece = all.front();
+                    all.pop_front();
+                }
 
-         if (piece.hash != hash.final()) {
-            missing.push_back(piece);
-        } else {
-            present.push_back(piece);
-        }
+                auto data = getPiece(piece);
+
+                if (data.empty()) {
+                    missing.push_back(piece);
+                    continue;
+                }
+
+                SHA1 hash;
+                hash.update(data);
+
+                if (piece.hash != hash.final()) {
+                    missing.push_back(piece);
+                } else {
+                    present.push_back(piece);
+                }
+            }
+        });
+    }
+
+    for(auto &thread : threads) {
+        thread.join();
     }
 
     return {missing, present};
