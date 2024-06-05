@@ -32,7 +32,7 @@ bool UDP::connect() {
     hints.ai_protocol = 0;
 
     if (getaddrinfo(ip.c_str(), port.c_str(), &hints, &result) != 0)
-        throw std::runtime_error("getaddrinfo error");
+        throw std::runtime_error("Failed to get tracker info");
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
         sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
@@ -68,8 +68,6 @@ void UDP::sendData(std::vector<uint8_t> data) {
 std::vector<uint8_t> UDP::receivePacket(size_t packetSize) {
     ssize_t total = 0;
     std::vector<uint8_t> result(packetSize);
-
-
 
     while (total <= 0) {
         total = recv(sockfd, result.data(), packetSize, 0);

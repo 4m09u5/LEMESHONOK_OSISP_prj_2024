@@ -178,6 +178,7 @@ std::pair<std::vector<PieceData>, std::vector<PieceData>> PieceManager::getPiece
                 auto data = getPiece(piece);
 
                 if (data.empty()) {
+                    std::lock_guard guard(lock);
                     missing.push_back(piece);
                     continue;
                 }
@@ -185,6 +186,7 @@ std::pair<std::vector<PieceData>, std::vector<PieceData>> PieceManager::getPiece
                 SHA1 hash;
                 hash.update(data);
 
+                std::lock_guard guard(lock);
                 if (piece.hash != hash.final()) {
                     missing.push_back(piece);
                 } else {

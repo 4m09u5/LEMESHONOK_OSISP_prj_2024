@@ -144,3 +144,7 @@ size_t PeerManager::getUploaded() {
 void PeerManager::handleRequest(const std::vector<uint8_t> &vector) {
 
 }
+
+bool PeerManager::hasPiece(PieceData data) {
+    return bitField.at(data.index);
+}

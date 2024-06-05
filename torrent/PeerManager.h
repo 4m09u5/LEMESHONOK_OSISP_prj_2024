@@ -42,6 +42,7 @@ public:
     size_t getDownloaded();
     size_t getUploaded();
 
+    bool hasPiece(PieceData data);
     void handleRequest(const std::vector<uint8_t> &vector);
 };
 

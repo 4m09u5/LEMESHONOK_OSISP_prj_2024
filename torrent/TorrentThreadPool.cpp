@@ -5,11 +5,11 @@
 #include <format>
 #include "TorrentThreadPool.h"
 #include "Tracker/UDPTracker/UDPTracker.h"
-#include "../network/http.h"
 #include "../bencode/BencodeParser.h"
 #include "Tracker/HTTPTracker/HTTPTracker.h"
 
 TorrentThreadPool::TorrentThreadPool(int workerCount, TorrentFile metadata, PieceManager& pieceManager, std::vector<PieceData> missing, std::vector<PieceData> present) {
+    std::cout << "Connecting to tracker..." << std::endl;
     applyTracker(metadata);
 
     for (auto &piece : missing) {
@@ -46,20 +46,36 @@ TorrentThreadPool::TorrentThreadPool(int workerCount, TorrentFile metadata, Piec
 
                 while (working) {
                     PieceData task;
+                    bool successful = true;
                     {
+                        std::deque<PieceData> buffer;
                         std::lock_guard guard(tasksMutex);
                         if (tasks.empty()) {
                             continue;
                         }
-                        task = tasks.front();
-                        tasks.pop_front();
-                    }
-                    bool successful;
+                        do {
+                            task = tasks.front();
+                            tasks.pop_front();
+                            buffer.push_back(task);
+                        } while (!peerManager.hasPiece(task) && !tasks.empty());
+                        buffer.pop_back();
 
-                    for (int i = 0; i < 3; i++) {
-                        successful = peerManager.downloadPiece(task);
-                        if (successful)
-                            break;
+                        if (tasks.empty() && !peerManager.hasPiece(task)) {
+                            successful = false;
+                        }
+
+                        while (!buffer.empty()) {
+                            tasks.push_front(buffer.back());
+                            buffer.pop_back();
+                        }
+                    }
+
+                    if (successful) {
+                        for (int i = 0; i < 3; i++) {
+                            successful = peerManager.downloadPiece(task);
+                            if (successful)
+                                break;
+                        }
                     }
 
                     if (!successful) {
