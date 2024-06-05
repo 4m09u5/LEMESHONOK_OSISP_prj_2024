@@ -50,6 +50,11 @@ int main(int argc, char **argv) {
     std::cout << "Scanning directory..." << std::endl;
     auto [missing, present] = pieceManager.getPieceData();
 
+    if (missing.empty()) {
+        std::cout << "All files are present" << std::endl;
+        return 0;
+    }
+
     TorrentThreadPool threadPool(16, metadata, pieceManager, missing, present);
 
     while (true) {

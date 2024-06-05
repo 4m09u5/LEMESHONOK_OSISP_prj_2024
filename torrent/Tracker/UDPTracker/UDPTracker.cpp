@@ -55,13 +55,18 @@ std::vector<Peer> UDPTracker::getPeers() {
 
     std::vector<Peer> peers;
 
-    for (auto it = response.begin() + 20; it != response.end(); it += 6) {
-        std::stringstream host, port;
-        host << +static_cast<unsigned char>(*it) << "." << +static_cast<unsigned char>(*(it + 1)) << "." <<
-             +static_cast<unsigned char>(*(it + 2)) << "." << +static_cast<unsigned char>(*(it + 3));
-        port << +static_cast<unsigned short>(static_cast<unsigned short>(*(it + 4)) * 256 +
-                                             static_cast<unsigned char>(*(it + 5)));
-        peers.emplace_back(host.str(), port.str());
+    try {
+        for (auto it = response.begin() + 20; it != response.end(); it += 6) {
+            std::stringstream host, port;
+            host << +static_cast<unsigned char>(*it) << "." << +static_cast<unsigned char>(*(it + 1)) << "." <<
+                 +static_cast<unsigned char>(*(it + 2)) << "." << +static_cast<unsigned char>(*(it + 3));
+            port << +static_cast<unsigned short>(static_cast<unsigned short>(*(it + 4)) * 256 +
+                                                 static_cast<unsigned char>(*(it + 5)));
+            peers.emplace_back(host.str(), port.str());
+        }
+    }
+    catch (...) {
+        return std::vector<Peer>();
     }
 
     return peers;
